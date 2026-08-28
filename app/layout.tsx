@@ -20,6 +20,9 @@ export const metadata: Metadata = {
   description:
     'Join the Gacha Capsules waitlist, complete missions, earn points, and climb the leaderboard for Pokémon-style collectible card drops.',
   generator: 'v0.app',
+  other: {
+    'virtual-protocol-site-verification': 'd81bb2e81f510c38dacb3ea2b51098b3',
+  },
   icons: {
     icon: [
       {
@@ -52,6 +55,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" className={`dark bg-background ${spaceGrotesk.variable} ${inter.variable}`}>
+      <head>
+        <meta name="virtual-protocol-site-verification" content="d81bb2e81f510c38dacb3ea2b51098b3" />
+      </head>
       <body className="antialiased font-sans">
         <Providers>{children}</Providers>
       </body>
