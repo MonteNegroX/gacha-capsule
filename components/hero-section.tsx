@@ -21,28 +21,30 @@ export function HeroSection() {
       </div>
 
       {/* Hero Content */}
-      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pt-32 pb-16 sm:px-6 md:pt-40 md:pb-24 lg:px-8">
-        <div className="flex max-w-xl flex-col gap-6">
-          <h1 className="font-heading text-5xl font-bold leading-[1.05] tracking-tight text-white sm:text-6xl lg:text-7xl">
+      <div className="relative z-10 mx-auto w-full max-w-6xl px-4 pt-28 pb-14 sm:px-6 md:pt-36 md:pb-20 lg:px-8">
+        <div className="flex max-w-xl flex-col gap-5">
+          <h1 className="font-heading text-4xl font-bold leading-[1.08] tracking-tight text-white sm:text-6xl lg:text-7xl">
             Collect.
             <br />
             Open.
             <br />
-            <span className="text-[#3c8aff] drop-shadow-md">Compete.</span>
+            <span className="text-[#3c8aff] drop-shadow-[0_0_25px_rgba(60,138,255,0.4)]">
+              Compete.
+            </span>
           </h1>
 
-          <p className="text-base leading-relaxed text-[#b1b7c3] sm:text-lg">
-            Open, play, and trade all on-chain collectibles — Pokémon, One Piece, Sports Cards, and TCG — in one place. Join the waitlist and climb the leaderboard.
+          <p className="text-sm leading-relaxed text-[#b1b7c3] sm:text-base md:text-lg">
+            The home for on-chain Pokémon, One Piece, and TCG collectibles. Open packs, build your vault, and climb the leaderboard.
           </p>
 
-          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <div className="flex flex-col gap-3 pt-2 sm:flex-row sm:items-center">
             <AuthButton
               size="lg"
-              className="h-12 bg-[#3c8aff] px-8 text-sm font-bold uppercase tracking-wide text-white hover:bg-[#0000ff] shadow-lg shadow-[#3c8aff]/30 border-none"
+              className="h-12 bg-[#3c8aff] px-8 text-sm font-bold uppercase tracking-wide text-white hover:bg-[#0000ff] shadow-lg shadow-[#3c8aff]/25 border-none transition-all hover:scale-[1.02]"
             />
-            <div className="flex items-center gap-2 text-xs font-medium text-[#b1b7c3] bg-[#0a0b0d]/70 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-white/10">
-              <span className="inline-block size-2 rounded-full bg-[#3c8aff]" />
-              Connect with Email or Wallet
+            <div className="flex items-center gap-2 text-xs font-semibold text-[#b1b7c3] bg-[#0a0b0d]/80 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10">
+              <span className="inline-block size-2 rounded-full bg-[#66c800] animate-pulse" />
+              Season 1 Early Access
             </div>
           </div>
         </div>

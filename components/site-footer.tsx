@@ -2,7 +2,7 @@ import Image from 'next/image'
 import { DiscordIcon, InstagramIcon, XIcon } from '@/components/icons'
 
 const socials = [
-  { label: 'X', icon: XIcon, href: '#' },
+  { label: 'X', icon: XIcon, href: 'https://x.com/capsulepull' },
   { label: 'Discord', icon: DiscordIcon, href: '#' },
   { label: 'Instagram', icon: InstagramIcon, href: '#' },
 ]

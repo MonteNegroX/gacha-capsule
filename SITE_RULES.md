@@ -68,4 +68,14 @@
 * **Режим проверки Twitter-заданий (Фаза 1)**: Выполнение на доверии при клике (Trust on click) с последующим переходом на полноценную проверку через Twitter API.
 * **Правило реферальных очков**: Пригласивший пользователь получает **+200 очков** только после того, как его реферал выполнит **хотя бы 1 задание**.
 
+---
+
+## 7. Деплой на Vercel и привязка домена Namecheap (`capsulepull.xyz`)
+* **Официальный домен**: `capsulepull.xyz` (и `www.capsulepull.xyz`).
+* **DNS записи в Namecheap (Advanced DNS)**:
+  * `A Record`: Host `@` → Value `76.76.21.21` (TTL: Automatic / 5 min).
+  * `CNAME Record`: Host `www` → Value `cname.vercel-dns.com.` (TTL: Automatic).
+* **Авторизация Privy (Allowed Domains)**: В панели [dashboard.privy.io](https://dashboard.privy.io) добавлены разрешенные домены: `capsulepull.xyz` и `www.capsulepull.xyz`.
+
+
 

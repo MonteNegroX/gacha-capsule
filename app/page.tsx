@@ -7,20 +7,20 @@ import { SiteFooter } from '@/components/site-footer'
 
 export default function Page() {
   return (
-    <main className="min-h-screen">
+    <main className="min-h-screen bg-[#0a0b0d]">
       <SiteHeader />
       <HeroSection />
 
-      <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6 lg:px-8">
-        <div className="grid grid-cols-1 gap-5 md:grid-cols-2">
+      <div className="mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 sm:px-6 lg:px-8">
+        <section id="quests" className="grid grid-cols-1 gap-6 md:grid-cols-2">
           <StatusCard />
           <TasksCard />
-        </div>
-      </section>
+        </section>
 
-      <section className="mx-auto max-w-6xl px-4 pb-20 sm:px-6 lg:px-8">
-        <LeaderboardCard />
-      </section>
+        <section id="leaderboard">
+          <LeaderboardCard />
+        </section>
+      </div>
 
       <SiteFooter />
     </main>

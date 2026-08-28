@@ -3,12 +3,10 @@ allowBuilds:
   '@prisma/engines': true
   '@reown/appkit': true
   bufferutil: true
-  esbuild: set this to true or false
+  esbuild: true
   keccak: true
-  msgpackr-extract: set this to true or false
   prisma: true
   utf-8-validate: true
-  workerd: set this to true or false
 minimumReleaseAgeExclude:
   - '@next/*'
   - next
