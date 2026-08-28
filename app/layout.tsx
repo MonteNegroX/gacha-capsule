@@ -39,15 +39,13 @@ export const viewport: Viewport = {
 export default function RootLayout({
   children,
 }: Readonly<{
-  children: React.ReactNode
-}>) {
-  return (
     <html lang="en" className={`dark bg-background ${spaceGrotesk.variable} ${inter.variable}`}>
       <head>
         <meta name="virtual-protocol-site-verification" content="d81bb2e81f510c38dacb3ea2b51098b3" />
       </head>
       <body className="antialiased font-sans">
         <Providers>{children}</Providers>
+        <Analytics />
       </body>
     </html>
   )
