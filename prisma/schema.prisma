@@ -1,0 +1,51 @@
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String     @id @default(cuid())
+  privyId      String     @unique
+  username     String
+  avatar       String?
+  totalPoints  Int        @default(0)
+  refCode      String     @unique
+  referredById String?
+  referredBy   User?      @relation("Referrals", fields: [referredById], references: [id])
+  referrals    User[]     @relation("Referrals")
+
+  tasks        UserTask[]
+  createdAt    DateTime   @default(now())
+  updatedAt    DateTime   @updatedAt
+
+  @@index([totalPoints(sort: Desc)])
+}
+
+model Task {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  title       String
+  description String
+  points      Int
+  icon        String
+  url         String?
+  userTasks   UserTask[]
+  createdAt   DateTime   @default(now())
+}
+
+model UserTask {
+  id          String   @id @default(cuid())
+  userId      String
+  user        User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  taskId      String
+  task        Task     @relation(fields: [taskId], references: [id], onDelete: Cascade)
+  status      String   @default("COMPLETED")
+  completedAt DateTime @default(now())
+
+  @@unique([userId, taskId])
+}
+

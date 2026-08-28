@@ -15,13 +15,13 @@ export function StatusCard() {
           alt=""
           width={48}
           height={48}
-          className="size-12 rounded-full ring-2 ring-gold/50"
+          className="size-12 rounded-full ring-2 ring-brand-cerulean/60"
         />
         <div className="flex items-center gap-2">
           <span className="font-heading text-base font-bold text-foreground">
             {currentUser.username}
           </span>
-          <Badge className="bg-gold/15 text-[10px] font-bold uppercase tracking-wide text-gold">
+          <Badge className="border border-brand-cerulean/30 bg-brand-cerulean/15 text-[10px] font-bold uppercase tracking-wide text-brand-cerulean">
             You
           </Badge>
         </div>
@@ -32,7 +32,7 @@ export function StatusCard() {
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             Total points
           </p>
-          <p className="font-heading text-4xl font-bold text-gold">
+          <p className="font-heading text-4xl font-bold text-[#3c8aff]">
             {currentUser.totalPoints.toLocaleString()}
           </p>
         </div>

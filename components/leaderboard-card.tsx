@@ -11,7 +11,7 @@ function PodiumSpot({ user, featured }: { user: (typeof topThree)[number]; featu
     <div
       className={cn(
         'flex flex-col items-center gap-2 rounded-xl border border-border bg-secondary/50 px-3 py-4 text-center',
-        featured && 'border-gold/40 bg-gold/10 sm:-translate-y-3',
+        featured && 'border-[#3c8aff]/50 bg-[#3c8aff]/10 sm:-translate-y-3',
       )}
     >
       <div className="relative">
@@ -22,20 +22,20 @@ function PodiumSpot({ user, featured }: { user: (typeof topThree)[number]; featu
           height={56}
           className={cn(
             'size-12 rounded-full ring-2 ring-border sm:size-14',
-            featured && 'ring-gold',
+            featured && 'ring-[#3c8aff]',
           )}
         />
         <span
           className={cn(
             'absolute -top-1.5 left-1/2 flex size-5 -translate-x-1/2 items-center justify-center rounded-full text-[10px] font-bold',
-            featured ? 'bg-gold text-gold-foreground' : 'bg-secondary text-foreground ring-1 ring-border',
+            featured ? 'bg-[#3c8aff] text-white' : 'bg-secondary text-foreground ring-1 ring-border',
           )}
         >
           {user.rank}
         </span>
       </div>
       <p className="truncate text-sm font-semibold text-foreground">{user.username}</p>
-      <p className="text-xs font-bold text-gold">{user.points.toLocaleString()} pts</p>
+      <p className="text-xs font-bold text-[#3c8aff]">{user.points.toLocaleString()} pts</p>
     </div>
   )
 }
@@ -45,7 +45,7 @@ export function LeaderboardCard() {
     <div id="leaderboard" className="flex flex-col gap-5 rounded-2xl border border-border bg-card p-6">
       <div className="flex items-center justify-between gap-3">
         <div className="flex items-center gap-2">
-          <Trophy className="size-4 text-gold" />
+          <Trophy className="size-4 text-[#3c8aff]" />
           <span className="text-xs font-bold uppercase tracking-widest text-muted-foreground">
             Leaderboard
           </span>
@@ -63,11 +63,11 @@ export function LeaderboardCard() {
 
       <div className="flex flex-col">
         {leaderboard.map((user, i) => (
-          <div key={user.username}>
+          <div key={`${user.username}-${i}`}>
             <div
               className={cn(
                 'flex items-center gap-3 rounded-lg px-2 py-2.5',
-                user.isCurrentUser && 'border border-gold/40 bg-gold/10',
+                user.isCurrentUser && 'border border-[#3c8aff]/40 bg-[#3c8aff]/15',
               )}
             >
               <span className="w-6 shrink-0 text-sm font-semibold text-muted-foreground">
@@ -83,11 +83,11 @@ export function LeaderboardCard() {
               <span className="min-w-0 flex-1 truncate text-sm font-medium text-foreground">
                 {user.username}
               </span>
-              <span className="shrink-0 text-sm font-bold text-foreground">
+              <span className="shrink-0 text-sm font-bold text-[#3c8aff]">
                 {user.points.toLocaleString()}
               </span>
               {user.isCurrentUser && (
-                <Badge className="ml-1 shrink-0 bg-gold/20 text-[10px] font-bold uppercase text-gold">
+                <Badge className="ml-1 shrink-0 border border-[#3c8aff]/30 bg-[#3c8aff]/20 text-[10px] font-bold uppercase text-[#3c8aff]">
                   You
                 </Badge>
               )}
@@ -99,7 +99,7 @@ export function LeaderboardCard() {
         ))}
       </div>
 
-      <Button variant="secondary" className="w-full font-semibold">
+      <Button variant="secondary" className="w-full font-semibold border border-[#3c8aff]/30 text-[#3c8aff] hover:bg-[#3c8aff] hover:text-white transition-colors">
         View full leaderboard
       </Button>
     </div>
