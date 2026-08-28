@@ -24,21 +24,9 @@ export const metadata: Metadata = {
     'virtual-protocol-site-verification': 'd81bb2e81f510c38dacb3ea2b51098b3',
   },
   icons: {
-    icon: [
-      {
-        url: '/icon-light-32x32.png',
-        media: '(prefers-color-scheme: light)',
-      },
-      {
-        url: '/icon-dark-32x32.png',
-        media: '(prefers-color-scheme: dark)',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
-    apple: '/apple-icon.png',
+    icon: '/images/logo.jpg',
+    shortcut: '/images/logo.jpg',
+    apple: '/images/logo.jpg',
   },
 }
 
