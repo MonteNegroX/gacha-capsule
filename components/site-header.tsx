@@ -7,8 +7,9 @@ import { Button } from '@/components/ui/button'
 import { AuthButton } from '@/components/auth-button'
 
 const navLinks = [
-  { label: 'Quests', href: '#quests', external: false },
-  { label: 'Leaderboard', href: '#leaderboard', external: false },
+  { label: 'Packs', href: '/#packs', external: false },
+  { label: 'Quests', href: '/#quests', external: false },
+  { label: 'Leaderboard', href: '/#leaderboard', external: false },
   { label: 'Community', href: 'https://x.com/capsulepull', external: true },
 ]
 

@@ -42,6 +42,12 @@ export function HeroSection() {
               size="lg"
               className="h-12 bg-[#3c8aff] px-8 text-sm font-bold uppercase tracking-wide text-white hover:bg-[#0000ff] shadow-lg shadow-[#3c8aff]/25 border-none transition-all hover:scale-[1.02]"
             />
+            <a
+              href="#packs"
+              className="inline-flex h-12 items-center justify-center rounded-lg border border-white/15 px-5 text-sm font-semibold text-white hover:border-[#3c8aff]"
+            >
+              View packs
+            </a>
             <div className="flex items-center gap-2 text-xs font-semibold text-[#b1b7c3] bg-[#0a0b0d]/80 backdrop-blur-md px-4 py-3 rounded-xl border border-white/10">
               <span className="inline-block size-2 rounded-full bg-[#66c800] animate-pulse" />
               Season 1 Early Access
