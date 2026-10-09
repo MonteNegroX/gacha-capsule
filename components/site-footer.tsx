@@ -20,7 +20,7 @@ export function SiteFooter() {
         />
         <div className="absolute inset-0 bg-gradient-to-t from-[#0a0b0d] via-[#0a0b0d]/50 to-[#0a0b0d]" />
       </div>
-      <div className="relative z-10 mx-auto flex max-w-6xl flex-col gap-10 px-4 py-12 sm:px-6 md:flex-row md:justify-between lg:px-8">
+      <div className="relative z-10 mx-auto flex max-w-7xl flex-col gap-10 px-4 py-12 sm:px-6 md:flex-row md:justify-between lg:px-8">
         <div className="flex max-w-xs flex-col gap-3">
           <div className="flex items-center gap-2.5">
             <Image
@@ -73,7 +73,7 @@ export function SiteFooter() {
       </div>
 
       <div className="relative z-10 border-t border-white/10 px-4 py-6 sm:px-6 lg:px-8">
-        <p className="mx-auto max-w-6xl text-xs text-[#b1b7c3]">
+        <p className="mx-auto max-w-7xl text-xs text-[#b1b7c3]">
           © 2026 Capsule. All rights reserved.
         </p>
       </div>

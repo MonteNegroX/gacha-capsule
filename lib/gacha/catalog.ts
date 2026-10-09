@@ -23,7 +23,8 @@ function range(value: unknown): TierRange {
 function normalize(raw: Record<string, unknown>): GachaMachine | null {
   const code = typeof raw.code === 'string' ? raw.code : ''
   if (!/^[a-z0-9_]+$/.test(code) || raw.public !== true) return null
-  const category = typeof raw.menuCategory === 'string' ? raw.menuCategory : 'Other'
+  const namedCategory = typeof raw.menuCategory === 'string' ? raw.menuCategory.trim() : ''
+  const category = namedCategory || 'Other'
   if (category === 'Watch') return null
 
   const oddsRaw = (raw.odds ?? {}) as Record<string, unknown>

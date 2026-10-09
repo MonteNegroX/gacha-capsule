@@ -18,7 +18,7 @@ const inter = Inter({
 export const metadata: Metadata = {
   title: 'Capsule — Collect. Open. Compete.',
   description:
-    'Join the Gacha Capsules waitlist, complete missions, earn points, and climb the leaderboard for Pokémon-style collectible card drops.',
+    'Open Pokémon, One Piece, and TCG packs. Read the odds and the buyback. The borrow desk is a preview.',
   generator: 'v0.app',
   other: {
     'virtual-protocol-site-verification': 'd81bb2e81f510c38dacb3ea2b51098b3',
