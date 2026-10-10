@@ -16,6 +16,13 @@ export function usdgAmount(priceUsd: number): bigint {
 
 const USDG_SCALE = BigInt('1000000')
 
+export const BUYOUT_FEE_PERCENT = 3
+
+export function buyoutCharge(principal: bigint): { fee: bigint; total: bigint } {
+  const fee = (principal * BigInt(BUYOUT_FEE_PERCENT)) / BigInt(100)
+  return { fee, total: principal + fee }
+}
+
 export function parseUsdg(input: string, cap: bigint): bigint | null {
   const text = input.trim()
   if (!/^\d+(\.\d{1,6})?$/.test(text) || cap <= BigInt(0)) return null

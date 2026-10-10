@@ -7,6 +7,8 @@ import {
   ROBINHOOD_EXPLORER,
   ROBINHOOD_RPC,
   ROBINHOOD_USDG,
+  BUYOUT_FEE_PERCENT,
+  buyoutCharge,
   encodeUsdgTransfer,
   parseUsdg,
 } from '@/lib/gacha/robinhood-transfer'
@@ -42,7 +44,8 @@ export function VaultFund({
   const [txHash, setTxHash] = useState('')
   const wallet = wallets.find((item) => item.type === 'ethereum' && item.walletClientType !== 'privy' && item.walletClientType !== 'privy-v2')
   const parsed = parseUsdg(amount, remaining)
-  const buttonLabel = busy ? 'Confirm in wallet' : wallet ? `Fund ${parsed ? formatRaw(parsed) : amount} USDG` : 'Connect wallet'
+  const charge = parsed ? buyoutCharge(parsed) : null
+  const buttonLabel = busy ? 'Confirm in wallet' : wallet ? `Fund ${charge ? formatRaw(charge.total) : amount} USDG` : 'Connect wallet'
 
   async function fund(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -51,7 +54,7 @@ export function VaultFund({
       connectWallet()
       return
     }
-    if (!parsed) {
+    if (!parsed || !charge) {
       setError('Enter a USDG amount up to the remaining cap.')
       return
     }
@@ -82,7 +85,7 @@ export function VaultFund({
         params: [{
           from,
           to: ROBINHOOD_USDG,
-          data: encodeUsdgTransfer(treasury, parsed),
+          data: encodeUsdgTransfer(treasury, charge.total),
           value: '0x0',
         }],
       })
@@ -125,6 +128,11 @@ export function VaultFund({
           className="h-12 rounded-xl border border-white/10 bg-black/30 px-3 text-base text-white outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]"
         />
       </label>
+      {charge ? (
+        <p className="text-xs leading-relaxed text-[#b1b7c3]">
+          Protocol fee {BUYOUT_FEE_PERCENT}%: {formatRaw(charge.fee)} USDG. Total {formatRaw(charge.total)} USDG.
+        </p>
+      ) : null}
       <button
         type="submit"
         disabled={!ready || busy}
@@ -133,7 +141,7 @@ export function VaultFund({
         {ready ? buttonLabel : 'Loading'}
       </button>
       <p id="fund-note" className="text-xs leading-relaxed text-[#717886]">
-        Sends USDG on Robinhood to {treasury}. The card stays in the Solana vault.
+        Sends the total on Robinhood to {treasury}. The buyback covers the card. The {BUYOUT_FEE_PERCENT}% fee stays in the treasury for the bot. The card stays in the Solana vault.
       </p>
       {error ? (
         <p id="fund-error" role="alert" className="text-xs leading-relaxed text-[#fc401f]">

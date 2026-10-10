@@ -27,7 +27,7 @@ function ListedDesk({ listing }: { listing: VaultListing }) {
             Fund the vault card.
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
-            This card stays in the Capsule vault. Lenders fund its Collector Crypt buyback in USDG. The 7-day term starts when the cap is filled.
+            This card stays in the Capsule vault. Lenders fund its Collector Crypt buyback in USDG, plus a 3% protocol fee. The 7-day term starts when the cap is filled.
           </p>
           <figure className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_50%_28%,#1a2a4a_0%,#0a0b0d_68%)] p-6">
             <img
