@@ -1,4 +1,6 @@
 import type { GachaMachine } from '@/lib/gacha/types'
+import type { VaultListing } from '@/lib/gacha/vault-listing'
+import { VaultFund } from '@/components/vault-fund'
 
 function money(value: number): string {
   const digits = Number.isInteger(value) ? 0 : 2
@@ -10,7 +12,89 @@ function money(value: number): string {
   })
 }
 
-export function BorrowDesk({ machine }: { machine: GachaMachine | null }) {
+function short(value: string): string {
+  if (value.length <= 16) return value
+  return `${value.slice(0, 6)}…${value.slice(-6)}`
+}
+
+function ListedDesk({ listing }: { listing: VaultListing }) {
+  return (
+    <section id="borrow" aria-labelledby="borrow-heading" className="scroll-mt-24">
+      <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">
+        <div className="flex flex-col gap-5">
+          <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Lend</p>
+          <h2 id="borrow-heading" className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">
+            Fund the vault card.
+          </h2>
+          <p className="max-w-xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
+            This card stays in the Capsule vault. Lenders fund its Collector Crypt buyback in USDG. The 7-day term starts when the cap is filled.
+          </p>
+          <figure className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_50%_28%,#1a2a4a_0%,#0a0b0d_68%)] p-6">
+            <img
+              src={listing.imageUrl}
+              alt={listing.name}
+              width={640}
+              height={880}
+              className="mx-auto max-h-80 w-full object-contain"
+            />
+          </figure>
+        </div>
+
+        <div className="rounded-3xl border border-white/10 bg-[#14171e] p-5 sm:p-6">
+          <div className="flex items-center justify-between gap-3">
+            <h3 className="font-heading text-xl font-bold text-white">Vault listing</h3>
+            <p className="rounded-full bg-[#ffd12f]/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#ffd12f]">
+              Listing
+            </p>
+          </div>
+
+          <div className="mt-5 flex flex-col gap-4">
+            <div>
+              <p className="text-[10px] uppercase tracking-wide text-[#717886]">Collateral</p>
+              <p className="font-heading text-xl font-bold text-white">{listing.name}</p>
+              <p className="mt-1 text-sm text-[#ffd12f]">
+                {listing.rarity}
+                {listing.grade ? ` · ${listing.grade}` : ''}
+              </p>
+            </div>
+
+            <div className="grid grid-cols-2 gap-2">
+              <div className="rounded-xl bg-black/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-[#717886]">Insured</p>
+                <p className="font-heading text-lg font-bold text-white">{money(listing.insuredUsd)}</p>
+              </div>
+              <div className="rounded-xl bg-black/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-[#717886]">Cap</p>
+                <p className="font-heading text-lg font-bold text-[#ffd12f]">{money(listing.capUsd)} USDG</p>
+              </div>
+              <div className="rounded-xl bg-black/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-[#717886]">Funded</p>
+                <p className="font-heading text-lg font-bold text-white">
+                  {money(listing.fundedUsd)} / {money(listing.capUsd)}
+                </p>
+              </div>
+              <div className="rounded-xl bg-black/30 px-3 py-2">
+                <p className="text-[10px] uppercase tracking-wide text-[#717886]">Term</p>
+                <p className="font-heading text-lg font-bold text-white">{listing.termDays} days</p>
+              </div>
+            </div>
+
+            <p className="break-all font-mono text-[11px] leading-relaxed text-[#b1b7c3]">
+              NFT {listing.nftAddress}
+              <br />
+              Vault {short(listing.vault)}
+            </p>
+
+            <VaultFund treasury={listing.treasury} capRaw={listing.capRaw} fundedRaw={listing.fundedRaw} />
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export function BorrowDesk({ machine, listing = null }: { machine: GachaMachine | null; listing?: VaultListing | null }) {
+  if (listing) return <ListedDesk listing={listing} />
   return (
     <section id="borrow" aria-labelledby="borrow-heading" className="scroll-mt-24">
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">

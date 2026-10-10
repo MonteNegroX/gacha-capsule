@@ -1,0 +1,21 @@
+{
+  "vault": "41NaNu6LNhDStmzEqGZHvHsawjtaBTVbR9GZdnQJ3193",
+  "treasury": "0xd89D795dD6D8eB591A0BB0Cb5105a5EaD1d00E99",
+  "card": {
+    "name": "2024 #052 Jolteon ex",
+    "imageUrl": "https://d1xpxki1g4htqu.cloudfront.net/c10GRaEsBOEU2xR8a1UvIsvFTuEMU_Bu2MSRQKNERyQ",
+    "rarity": "Common",
+    "grade": "CGC Pristine 10",
+    "insuredUsd": 20
+  },
+  "deal": {
+    "id": "deal-66sKFD5cKaYtLF79x8fxAM4zihFCTZZwUtd35w7KkzZD",
+    "orderId": "cc-20469568-845d-43a0-b131-d1ced2f02acd",
+    "nftAddress": "66sKFD5cKaYtLF79x8fxAM4zihFCTZZwUtd35w7KkzZD",
+    "buybackQuote": "17000000",
+    "cap": "17000000",
+    "minFunded": "17000000",
+    "funded": "0",
+    "status": "LISTING"
+  }
+}

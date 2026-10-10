@@ -9,6 +9,7 @@ import { LeaderboardCard } from '@/components/leaderboard-card'
 import { SiteFooter } from '@/components/site-footer'
 import { loadPublicMachines } from '@/lib/gacha/catalog'
 import type { GachaMachine } from '@/lib/gacha/types'
+import { loadVaultListing } from '@/lib/gacha/vault-listing'
 
 export default async function Page() {
   let machines: GachaMachine[] = []
@@ -34,7 +35,7 @@ export default async function Page() {
       <div className="mx-auto flex max-w-7xl flex-col gap-16 px-4 py-14 sm:px-6 lg:px-8">
         <HowItWorks shots={shots.slice(0, 4)} />
         <PackFloor machines={machines} unavailable={unavailable} />
-        <BorrowDesk machine={starter} />
+        <BorrowDesk machine={starter} listing={loadVaultListing()} />
 
         <section id="quests" className="grid scroll-mt-24 grid-cols-1 gap-6 md:grid-cols-2">
           <StatusCard />
