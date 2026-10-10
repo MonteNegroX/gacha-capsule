@@ -22,18 +22,31 @@ export function BorrowDesk({ machine }: { machine: GachaMachine | null }) {
           <p className="max-w-xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
             The pull is the collateral. You repay, and it unlocks. This desk is a preview. Loans are not open.
           </p>
-          <ol className="grid gap-3 sm:grid-cols-3 lg:grid-cols-1">
+          <ol className="flex flex-col gap-3">
             {[
               'Put a pull up as collateral.',
               'Take a fixed-term advance.',
               'Repay. The pull unlocks.',
             ].map((step, index) => (
-              <li key={step} className="rounded-2xl border border-white/10 px-4 py-3 text-sm text-[#eef0f3]">
-                <span className="mb-1 block font-heading text-xs font-bold text-[#3c8aff]">{index + 1}</span>
+              <li key={step} className="flex items-baseline gap-3 text-sm text-[#eef0f3]">
+                <span className="font-heading text-xs font-bold text-[#3c8aff]">{index + 1}</span>
                 {step}
               </li>
             ))}
           </ol>
+          {machine?.imageUrl?.includes('blob.vercel-storage.com') && (
+            <figure className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_50%_28%,#1a2a4a_0%,#0a0b0d_68%)] p-6">
+              <img
+                src={machine.imageUrl}
+                alt={machine.name}
+                width={1080}
+                height={1080}
+                loading="lazy"
+                decoding="async"
+                className="mx-auto aspect-square w-full max-w-xs object-contain"
+              />
+            </figure>
+          )}
         </div>
 
         <form aria-describedby="borrow-note" className="rounded-3xl border border-white/10 bg-[#14171e] p-5 sm:p-6">

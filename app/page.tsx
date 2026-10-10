@@ -25,23 +25,14 @@ export default async function Page() {
       : [],
   )
   const starter = machines.find((machine) => machine.code === 'pokemon_25') ?? machines[0] ?? null
-  const fromPrice = machines.reduce<number | null>(
-    (lowest, machine) => (lowest == null || machine.price < lowest ? machine.price : lowest),
-    null,
-  )
 
   return (
     <main className="min-h-screen bg-[#0a0b0d]">
       <SiteHeader />
-      <HeroSection
-        shots={shots.slice(0, 4)}
-        machineCount={machines.length}
-        fromPrice={fromPrice}
-        buyback={starter?.instantBuyback ?? null}
-      />
+      <HeroSection shots={shots.slice(0, 3)} />
 
       <div className="mx-auto flex max-w-7xl flex-col gap-16 px-4 py-14 sm:px-6 lg:px-8">
-        <HowItWorks />
+        <HowItWorks shots={shots.slice(0, 4)} />
         <PackFloor machines={machines} unavailable={unavailable} />
         <BorrowDesk machine={starter} />
 
