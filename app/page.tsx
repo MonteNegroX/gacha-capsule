@@ -29,7 +29,7 @@ export default async function Page() {
   return (
     <main className="min-h-screen bg-[#0a0b0d]">
       <SiteHeader />
-      <HeroSection shots={shots.slice(0, 3)} />
+      <HeroSection />
 
       <div className="mx-auto flex max-w-7xl flex-col gap-16 px-4 py-14 sm:px-6 lg:px-8">
         <HowItWorks shots={shots.slice(0, 4)} />
