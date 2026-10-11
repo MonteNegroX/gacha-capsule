@@ -10,6 +10,7 @@ import {
   expireChoice,
   failOpen,
   failPayout,
+  attachWinLend,
   listLend,
   markManualReview,
   markPaid,
@@ -17,12 +18,15 @@ import {
   payoutAmount,
   queueDoublePayout,
   queueLend,
+  recordUnclaimedBuyback,
   recordBuyback,
   recordOpen,
   refundDue,
   refundUnopened,
   requestRefund,
   retryPayout,
+  unclaimedWinAction,
+  WIN_UNFUNDED_MS,
   type CapsuleOrder,
 } from './order'
 
@@ -271,10 +275,30 @@ describe('choice', () => {
     assert.equal(queued.ok && queued.applied, true)
     if (!queued.ok) return
     assert.equal(payoutAmount(queued.order), QUOTE * 2n)
+    const listed = attachWinLend(queued.order, 'deal-win')
+    assert.equal(listed.ok && listed.applied, true)
+    if (!listed.ok) return
+    assert.equal(listed.order.status, 'PAYOUT_PENDING')
+    assert.equal(listed.order.lendDealId, 'deal-win')
+    assert.equal(payoutAmount(listed.order), QUOTE * 2n)
+    const again = attachWinLend(listed.order, 'deal-win')
+    assert.equal(again.ok && again.applied, false)
+    const sold = recordUnclaimedBuyback(listed.order, 'sell-sig', QUOTE)
+    assert.equal(sold.ok && sold.applied, true)
+    if (!sold.ok) return
+    assert.equal(sold.order.status, 'PAYOUT_PENDING')
+    assert.equal(payoutAmount(sold.order), QUOTE * 2n)
+    assert.equal(unclaimedWinAction({ draw: 'WIN', sold: false, listedAtMs: OPENED_AT, nowMs: OPENED_AT + WIN_UNFUNDED_MS - 1, onchain: 'Funding' }), 'wait')
+    assert.equal(unclaimedWinAction({ draw: 'WIN', sold: false, listedAtMs: OPENED_AT, nowMs: OPENED_AT + WIN_UNFUNDED_MS, onchain: 'Funding' }), 'cancel-sell')
+    assert.equal(unclaimedWinAction({ draw: 'WIN', sold: false, listedAtMs: OPENED_AT, nowMs: OPENED_AT + WIN_UNFUNDED_MS, onchain: 'Active' }), 'leave')
+    assert.equal(unclaimedWinAction({ draw: 'WIN', sold: false, listedAtMs: OPENED_AT, nowMs: OPENED_AT, onchain: 'Cancelled' }), 'sell')
+    assert.equal(unclaimedWinAction({ draw: 'LOSS', sold: false, listedAtMs: OPENED_AT, nowMs: OPENED_AT + WIN_UNFUNDED_MS, onchain: 'Funding' }), 'leave')
 
     const loss = chooseDouble(awaiting(), 'LOSS', OPENED_AT + 1_000)
     assert.equal(loss.ok && loss.applied, true)
     if (!loss.ok) return
+    const lossListed = attachWinLend(loss.order, 'deal-loss')
+    assert.equal(lossListed.ok, false)
     assert.equal(payoutAmount(loss.order), 0n)
     const payLoss = markPaid(loss.order, '0xno')
     assert.equal(payLoss.ok, false)

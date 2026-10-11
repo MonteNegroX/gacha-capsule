@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import {
+  attachWinLend,
   beginOpen,
   expireChoice,
   failOpen,
@@ -9,6 +10,8 @@ import {
   queueLend,
   recordBuyback,
   recordOpen,
+  recordUnclaimedBuyback,
+  unclaimedWinAction,
   refundUnopened,
   requestRefund,
   retryPayout,
@@ -21,11 +24,12 @@ import { readDeal } from '@/lib/gacha/lend-read'
 import {
   beatWorker,
   listPulls,
+  listUnsoldWins,
   toDomain,
   writeDomain,
   type PullRow,
 } from '@/lib/gacha/pull-store'
-import { createLendDeal, dealIdFor, sendUsdg, treasuryAddressMatches, treasuryUsdgBalance, withdrawLendPrincipal } from '@/lib/gacha/treasury-tx'
+import { cancelLendDeal, createLendDeal, dealIdFor, sendUsdg, treasuryAddressMatches, treasuryUsdgBalance, withdrawLendPrincipal } from '@/lib/gacha/treasury-tx'
 import { parseUnits, refundToRaw } from '@/lib/gacha/units'
 import { treasuryAddress } from '@/lib/gacha/verify-payment'
 import { vaultCanOpen } from '@/lib/gacha/vault-stock'
@@ -235,6 +239,76 @@ async function listDeal(row: PullRow): Promise<void> {
   console.log(`listed ${current.id}`)
 }
 
+const CHAIN_STATUS = ['Empty', 'Funding', 'Active', 'Repaid', 'Defaulted', 'Cancelled'] as const
+
+async function listWin(row: PullRow): Promise<void> {
+  if (row.lend_deal_id || row.buyback_signature || !row.nft_address || row.nft_address === HELD_JOLTEON) return
+  const principal = row.buyback_raw ? BigInt(row.buyback_raw) : BigInt(0)
+  const owner = treasuryAddress()
+  if (!owner || principal <= BigInt(0)) return
+  let dealId = dealIdFor(row.id)
+  try {
+    dealId = await createLendDeal(row.id, owner, principal)
+  } catch (err) {
+    const existing = await readDeal(dealId).catch(() => null)
+    if (!existing || existing.status === 0) {
+      console.log(`win list skipped ${row.id}: ${note(err)}`)
+      return
+    }
+  }
+  const attached = attachWinLend(toDomain(row), dealId)
+  if (!attached.ok) return
+  const saved = await save(row.status, attached.order, { listed_at_ms: row.listed_at_ms ?? String(Date.now()) })
+  if (saved) console.log(`listed win ${row.id}`)
+}
+
+async function sellUnclaimedWin(row: PullRow): Promise<void> {
+  if (!row.nft_address || row.nft_address === HELD_JOLTEON || row.buyback_signature) return
+  try {
+    const sold = await botJson('src/sell-held.ts', row.nft_address)
+    const signature = typeof sold.signature === 'string' ? sold.signature : ''
+    const refund = refundToRaw(sold.refundAmount)
+    if (!signature || refund == null) throw new Error('Buyback did not return a refund')
+    const recorded = recordUnclaimedBuyback(toDomain(row), signature, refund)
+    if (!recorded.ok) return
+    await save(row.status, recorded.order)
+    console.log(`bought back unclaimed ${row.id}`)
+  } catch (err) {
+    await save(row.status, { ...toDomain(row), error: note(err) })
+  }
+}
+
+async function expireUnclaimedWin(row: PullRow): Promise<void> {
+  if (!row.lend_deal_id || row.buyback_signature || row.nft_address === HELD_JOLTEON) return
+  const deal = await readDeal(row.lend_deal_id).catch(() => null)
+  const onchain = deal ? CHAIN_STATUS[deal.status] ?? null : null
+  const listedAt = row.listed_at_ms && /^\d+$/.test(row.listed_at_ms) ? Number(row.listed_at_ms) : null
+  const action = unclaimedWinAction({
+    draw: 'WIN',
+    sold: false,
+    listedAtMs: listedAt,
+    nowMs: Date.now(),
+    onchain,
+  })
+  if (action === 'leave') {
+    if (deal && (deal.status === 2 || deal.status === 4)) await maintainDeal(row)
+    return
+  }
+  if (action === 'wait') return
+  if (action === 'cancel-sell') {
+    try {
+      await cancelLendDeal(row.lend_deal_id)
+    } catch (err) {
+      const again = await readDeal(row.lend_deal_id).catch(() => null)
+      if (!again || again.status !== 5) {
+        console.log(`cancel skipped ${row.id}: ${note(err)}`)
+        return
+      }
+    }
+  }
+  await sellUnclaimedWin(row)
+}
+
 async function maintainDeal(row: PullRow): Promise<void> {
   if (!row.lend_deal_id || row.nft_address === HELD_JOLTEON) return
   const deal = await readDeal(row.lend_deal_id).catch(() => null)
@@ -293,6 +367,10 @@ async function tick(): Promise<void> {
   }
   for (const row of await listPulls('REFUND_PENDING')) await refundRow(row)
   for (const row of await listPulls('LEND_LISTED')) await maintainDeal(row)
+  for (const row of await listUnsoldWins()) {
+    if (row.lend_deal_id) await expireUnclaimedWin(row)
+    else await listWin(row)
+  }
 }
 
 export async function runWorker(): Promise<void> {

@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto'
-import type { CapsuleOrder, Choice, ChoiceSource, DrawResult, OrderStatus } from '@/lib/capsule/order'
+import { WIN_UNFUNDED_MS, type CapsuleOrder, type Choice, type ChoiceSource, type DrawResult, type OrderStatus } from '@/lib/capsule/order'
 import { prisma } from '@/lib/prisma'
 import { doubleOffered } from '@/lib/gacha/pack-access'
 import { formatUnits } from '@/lib/gacha/units'
@@ -33,6 +33,7 @@ export type PullRow = {
   nft_send_sig: string | null
   opened_at_ms: string | null
   choice_deadline_ms: string | null
+  listed_at_ms: string | null
   error: string | null
 }
 
@@ -70,6 +71,7 @@ export type ListedDeal = {
   rarity: string
   principalRaw: string
   nftAddress: string
+  unfundedClosesAt: string | null
 }
 
 const ORDER_TABLE = `
@@ -119,6 +121,7 @@ export function ensurePullStore(): Promise<void> {
   if (!ready) {
     ready = prisma.$executeRawUnsafe(ORDER_TABLE)
       .then(() => prisma.$executeRawUnsafe(WORKER_TABLE))
+      .then(() => prisma.$executeRawUnsafe('ALTER TABLE pull_order ADD COLUMN IF NOT EXISTS listed_at_ms text'))
       .then(() => undefined)
       .catch((err: unknown) => {
       ready = null
@@ -179,6 +182,7 @@ function rowFrom(value: unknown): PullRow | null {
     nft_send_sig: text(raw.nft_send_sig),
     opened_at_ms: text(raw.opened_at_ms),
     choice_deadline_ms: text(raw.choice_deadline_ms),
+    listed_at_ms: text(raw.listed_at_ms),
     error: text(raw.error),
   }
 }
@@ -280,20 +284,50 @@ export async function listPulls(status: string): Promise<PullRow[]> {
   })
 }
 
+function listedDeal(row: PullRow): ListedDeal | null {
+  if (!row.lend_deal_id || !row.buyback_raw || !row.nft_address || !row.card_name) return null
+  if (!/^0x[a-fA-F0-9]{64}$/.test(row.lend_deal_id)) return null
+  const listedAt = row.listed_at_ms && /^\d+$/.test(row.listed_at_ms) ? Number(row.listed_at_ms) : null
+  const unfundedClosesAt = row.choice === 'DOUBLE' && row.draw === 'WIN' && listedAt != null
+    ? new Date(listedAt + WIN_UNFUNDED_MS).toISOString()
+    : null
+  return {
+    orderId: row.id,
+    dealId: row.lend_deal_id,
+    name: row.card_name,
+    imageUrl: row.image_url?.startsWith('https://') ? row.image_url : null,
+    rarity: row.rarity ?? 'Unknown',
+    principalRaw: row.buyback_raw,
+    nftAddress: row.nft_address,
+    unfundedClosesAt,
+  }
+}
+
 export async function listListedDeals(): Promise<ListedDeal[]> {
-  const rows = await listPulls('LEND_LISTED')
-  return rows.flatMap((row) => {
-    if (!row.lend_deal_id || !row.buyback_raw || !row.nft_address || !row.card_name) return []
-    if (!/^0x[a-fA-F0-9]{64}$/.test(row.lend_deal_id)) return []
-    return [{
-      orderId: row.id,
-      dealId: row.lend_deal_id,
-      name: row.card_name,
-      imageUrl: row.image_url?.startsWith('https://') ? row.image_url : null,
-      rarity: row.rarity ?? 'Unknown',
-      principalRaw: row.buyback_raw,
-      nftAddress: row.nft_address,
-    }]
+  await ensurePullStore()
+  const rows = await prisma.$queryRaw<unknown[]>`
+    SELECT * FROM pull_order
+    WHERE status = 'LEND_LISTED'
+       OR (choice = 'DOUBLE' AND draw = 'WIN' AND lend_deal_id IS NOT NULL AND buyback_signature IS NULL)
+    ORDER BY created_at ASC
+  `
+  return rows.flatMap((item) => {
+    const row = rowFrom(item)
+    const deal = row ? listedDeal(row) : null
+    return deal ? [deal] : []
+  })
+}
+
+export async function listUnsoldWins(): Promise<PullRow[]> {
+  await ensurePullStore()
+  const rows = await prisma.$queryRaw<unknown[]>`
+    SELECT * FROM pull_order
+    WHERE choice = 'DOUBLE' AND draw = 'WIN' AND buyback_signature IS NULL AND nft_address IS NOT NULL
+    ORDER BY created_at ASC
+  `
+  return rows.flatMap((item) => {
+    const row = rowFrom(item)
+    return row ? [row] : []
   })
 }
 
@@ -364,6 +398,7 @@ export async function writeDomain(previous: string, order: CapsuleOrder, extra: 
     lend_deal_id: order.lendDealId,
     opened_at_ms: order.openedAtMs == null ? null : String(order.openedAtMs),
     choice_deadline_ms: order.choiceDeadlineMs == null ? null : String(order.choiceDeadlineMs),
+    listed_at_ms: extra.listed_at_ms ?? current.listed_at_ms,
     error: order.error,
   }
   const changed = await prisma.$executeRaw`
@@ -389,6 +424,7 @@ export async function writeDomain(previous: string, order: CapsuleOrder, extra: 
       nft_send_sig = ${next.nft_send_sig},
       opened_at_ms = ${next.opened_at_ms},
       choice_deadline_ms = ${next.choice_deadline_ms},
+      listed_at_ms = ${next.listed_at_ms},
       error = ${next.error},
       updated_at = now()
     WHERE id = ${next.id} AND status = ${previous}
@@ -402,7 +438,10 @@ export async function setSolanaAddress(id: string, address: string): Promise<Pul
   const changed = await prisma.$executeRaw`
     UPDATE pull_order
     SET solana_address = ${address}, updated_at = now()
-    WHERE id = ${id} AND status = 'LEND_LISTED' AND solana_address IS NULL
+    WHERE id = ${id}
+      AND solana_address IS NULL
+      AND lend_deal_id IS NOT NULL
+      AND (status = 'LEND_LISTED' OR (choice = 'DOUBLE' AND draw = 'WIN'))
   `
   if (changed === 0) return findPullById(id)
   return findPullById(id)

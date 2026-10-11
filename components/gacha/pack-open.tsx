@@ -233,7 +233,7 @@ export function PackOpen({
           <div className="flex flex-col gap-3">
             <p className="text-sm leading-relaxed text-[#b1b7c3]">
               Buyback pays the quote
-              {order.doubleOffered ? '. Double flips a coin: heads pays 2×, and heads lands 49% of the time.' : '. Double is only shown on a Common card.'}
+              {order.doubleOffered ? '. Double flips a coin: heads pays 2×, and heads lands 49% of the time. The card is listed either way. A win is sold back if nobody funds it within 2 days.' : '. Double is only shown on a Common card.'}
               {order.choiceDeadline ? ` Choose before ${new Date(order.choiceDeadline).toLocaleString()}.` : ''}
             </p>
             <div className="flex flex-wrap gap-2">
@@ -337,11 +337,13 @@ function statusCopy(order: PublicPull): string {
       return 'Payment confirmed. The pack is opening.'
     case 'BUYBACK_CONFIRMED':
     case 'PAYOUT_PENDING':
-      return order.choice === 'DOUBLE' ? 'Double won. The 2× buyback is being paid.' : 'Buyback confirmed. The refund is being paid.'
+      return order.choice === 'DOUBLE' ? 'Double won. The 2× buyback is being paid, and the card is listed for 2 days.' : 'Buyback confirmed. The refund is being paid.'
     case 'PAID_OUT':
-      return `Paid ${order.payoutUsd ?? ''} USDG.`
+      return order.choice === 'DOUBLE' && order.draw === 'WIN' && order.lendDealId
+        ? `Paid ${order.payoutUsd ?? ''} USDG. The card is listed. If nobody funds it within 2 days, the vault sells it.`
+        : `Paid ${order.payoutUsd ?? ''} USDG.`
     case 'DOUBLE_WON':
-      return 'Double won. The payout is next.'
+      return 'Double won. The 2× buyback is next, and the card is listed for 2 days.'
     case 'DOUBLE_LOST':
     case 'LEND_QUEUED':
     case 'LEND_LISTED':

@@ -20,8 +20,8 @@ const STEPS = [
     href: '#packs',
   },
   {
-    title: 'Fund a loss',
-    body: 'A lost Double lists the buyback for 7 days. The funder deposits that amount.',
+    title: 'Fund the card',
+    body: 'Double lists the buyback. A loss runs for 7 days. A win is sold back if nobody funds it within 2 days.',
     href: '#borrow',
   },
 ]

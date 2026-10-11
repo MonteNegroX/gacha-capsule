@@ -5,6 +5,7 @@ import { ROBINHOOD_RPC, ROBINHOOD_USDG } from '@/lib/gacha/robinhood-transfer'
 const ERC20 = ['function transfer(address to, uint256 amount) returns (bool)']
 const LEND = [
   'function createDeal(bytes32 id, address owner_, uint256 principal, uint16 funderBps, uint16 protocolBps, uint32 term)',
+  'function cancelDeal(bytes32 id)',
   'function withdrawPrincipal(bytes32 id)',
 ]
 
@@ -66,6 +67,15 @@ export async function createLendDeal(orderId: string, owner: string, principal: 
   const receipt = await tx.wait()
   if (!receipt || receipt.status !== 1) throw new Error('Deal was not created')
   return dealIdFor(orderId)
+}
+
+export async function cancelLendDeal(dealId: string): Promise<string> {
+  const signer = wallet()
+  const lend = new Contract(LEND_ADDRESS, LEND, signer)
+  const tx = await lend.cancelDeal(dealId, { ...(await fee(signer)), gasLimit: BigInt(200000) })
+  const receipt = await tx.wait()
+  if (!receipt || receipt.status !== 1) throw new Error('Deal was not cancelled')
+  return receipt.hash as string
 }
 
 export async function withdrawLendPrincipal(dealId: string): Promise<string> {

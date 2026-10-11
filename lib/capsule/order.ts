@@ -1,4 +1,5 @@
 export const CHOICE_WINDOW_MS = 24 * 60 * 60 * 1000
+export const WIN_UNFUNDED_MS = 2 * 24 * 60 * 60 * 1000
 
 const ZERO = BigInt(0)
 const TWO = BigInt(2)
@@ -375,6 +376,47 @@ export function queueLend(order: CapsuleOrder): ApplyResult {
   if (order.status === 'LEND_QUEUED' || order.status === 'LEND_LISTED') return done(order, false)
   if (order.status !== 'DOUBLE_LOST') return fail(order, 'ILLEGAL_TRANSITION')
   return next(order, { status: 'LEND_QUEUED', error: null })
+}
+
+const WIN_PAYOUT: ReadonlySet<OrderStatus> = new Set(['DOUBLE_WON', 'PAYOUT_PENDING', 'PAID_OUT', 'PAYOUT_FAILED'])
+
+export function attachWinLend(order: CapsuleOrder, dealId: string): ApplyResult {
+  const id = text(dealId)
+  if (!id) return fail(order, 'DEAL_CONFLICT')
+  if (order.choice !== 'DOUBLE' || order.draw !== 'WIN' || !WIN_PAYOUT.has(order.status)) return fail(order, 'ILLEGAL_TRANSITION')
+  if (order.lendDealId) {
+    if (order.lendDealId === id) return done(order, false)
+    return fail(order, 'DEAL_CONFLICT')
+  }
+  return next(order, { lendDealId: id, error: null })
+}
+
+export function recordUnclaimedBuyback(order: CapsuleOrder, signature: string, actualRefund: bigint): ApplyResult {
+  const signed = text(signature)
+  if (!signed || typeof actualRefund !== 'bigint' || actualRefund < ZERO) return fail(order, 'SIGNATURE_CONFLICT')
+  if (order.choice !== 'DOUBLE' || order.draw !== 'WIN' || !WIN_PAYOUT.has(order.status)) return fail(order, 'ILLEGAL_TRANSITION')
+  if (order.buybackSignature) {
+    if (order.buybackSignature === signed && order.actualRefund === actualRefund) return done(order, false)
+    return fail(order, 'SIGNATURE_CONFLICT')
+  }
+  return next(order, { buybackSignature: signed, actualRefund, error: null })
+}
+
+export type ChainDealStatus = 'Empty' | 'Funding' | 'Active' | 'Repaid' | 'Defaulted' | 'Cancelled'
+
+export function unclaimedWinAction(input: {
+  draw: DrawResult | null
+  sold: boolean
+  listedAtMs: number | null
+  nowMs: number
+  onchain: ChainDealStatus | null
+}): 'wait' | 'cancel-sell' | 'sell' | 'leave' {
+  if (input.draw !== 'WIN' || input.sold) return 'leave'
+  if (input.onchain === 'Cancelled') return 'sell'
+  if (input.onchain !== 'Funding') return 'leave'
+  if (input.listedAtMs == null || !Number.isFinite(input.listedAtMs) || !Number.isFinite(input.nowMs)) return 'wait'
+  if (input.nowMs < input.listedAtMs + WIN_UNFUNDED_MS) return 'wait'
+  return 'cancel-sell'
 }
 
 export function listLend(order: CapsuleOrder, dealId: string): ApplyResult {

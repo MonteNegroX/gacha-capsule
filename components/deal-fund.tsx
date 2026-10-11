@@ -52,6 +52,7 @@ export function DealFund({
   principalRaw,
   nftAddress,
   treasury,
+  unfundedClosesAt = null,
 }: {
   orderId: string
   dealId: string
@@ -61,6 +62,7 @@ export function DealFund({
   principalRaw: string
   nftAddress: string
   treasury: string
+  unfundedClosesAt?: string | null
 }) {
   const { wallets, ready } = useWallets()
   const { connectWallet } = useConnectWallet()
@@ -222,6 +224,7 @@ export function DealFund({
           <p className="text-sm text-[#ffd12f]">{rarity}</p>
           <p className="text-sm leading-relaxed text-[#b1b7c3]">
             Deposit {formatUnits(principal)} USDG. If the vault repays within 7 days, you receive {formatUnits(principal + funderFee)} USDG. Capsule keeps {formatUnits(protocolFee)} USDG on that repayment. If the term ends unpaid, you submit a Solana address and the card is sent to you.
+            {unfundedClosesAt ? ` If nobody funds this card by ${new Date(unfundedClosesAt).toLocaleString()}, the vault sells it back.` : ''}
           </p>
           <p className="break-all font-mono text-[11px] text-[#717886]">NFT {nftAddress}</p>
           {deal?.status === 1 && (
