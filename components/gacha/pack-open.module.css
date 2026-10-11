@@ -1,0 +1,194 @@
+.stage {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.slab,
+.card {
+  width: 9.5rem;
+  margin-inline: auto;
+}
+
+.slab {
+  height: 13rem;
+  border-radius: 1rem;
+  border: 1px solid rgb(255 209 47 / 0.45);
+  background: linear-gradient(180deg, #1c2433, #0e1116);
+  position: relative;
+  overflow: hidden;
+}
+
+.slab::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(100deg, transparent 20%, rgb(255 255 255 / 0.2), transparent 62%);
+  transform: translateX(-130%);
+}
+
+.card {
+  border-radius: 0.9rem;
+  animation: card-in 0.55s ease both;
+}
+
+.lines {
+  display: flex;
+  flex-direction: column;
+}
+
+.line {
+  display: flex;
+  justify-content: space-between;
+  gap: 1rem;
+  border-bottom: 1px solid rgb(255 255 255 / 0.08);
+  padding: 0.5rem 0;
+  font-size: 0.875rem;
+}
+
+.label {
+  color: #717886;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 0.65rem;
+}
+
+.value {
+  text-align: right;
+  font-weight: 700;
+}
+
+.off .value {
+  color: #3a404c;
+}
+
+.on {
+  animation: reveal-in 0.4s ease both;
+}
+
+.on .value {
+  color: #fff;
+}
+
+.coinScene {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.75rem;
+  perspective: 800px;
+}
+
+.coin {
+  position: relative;
+  width: 6.5rem;
+  height: 6.5rem;
+  transform-style: preserve-3d;
+}
+
+.face {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  backface-visibility: hidden;
+}
+
+.heads {
+  border: 3px solid #fff4c2;
+  background: radial-gradient(circle at 35% 30%, #ffe58a, #ffd12f 45%, #a97812);
+  color: #1a1403;
+}
+
+.tails {
+  border: 3px solid #8b93a3;
+  background: radial-gradient(circle at 35% 30%, #5c6574, #1c212b 58%, #0a0b0d);
+  color: #eef0f3;
+  transform: rotateY(180deg);
+}
+
+.showTails {
+  transform: rotateY(180deg);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .slab::after {
+    animation: slab-scan 1.5s ease-in-out infinite;
+  }
+
+  .spin {
+    animation: coin-spin 0.42s linear infinite;
+  }
+
+  .landWin {
+    animation: coin-land-win 1.15s cubic-bezier(0.16, 0.72, 0.2, 1) forwards;
+  }
+
+  .landLoss {
+    animation: coin-land-loss 1.15s cubic-bezier(0.16, 0.72, 0.2, 1) forwards;
+  }
+}
+
+@keyframes slab-scan {
+  from {
+    transform: translateX(-130%);
+  }
+
+  to {
+    transform: translateX(130%);
+  }
+}
+
+@keyframes reveal-in {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes card-in {
+  from {
+    opacity: 0;
+    transform: scale(0.92);
+  }
+
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes coin-spin {
+  to {
+    transform: rotateY(360deg);
+  }
+}
+
+@keyframes coin-land-win {
+  from {
+    transform: rotateY(0deg);
+  }
+
+  to {
+    transform: rotateY(1800deg);
+  }
+}
+
+@keyframes coin-land-loss {
+  from {
+    transform: rotateY(0deg);
+  }
+
+  to {
+    transform: rotateY(1980deg);
+  }
+}
