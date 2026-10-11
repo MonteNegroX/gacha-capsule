@@ -1,0 +1,1 @@
+export const HELD_JOLTEON = '66sKFD5cKaYtLF79x8fxAM4zihFCTZZwUtd35w7KkzZD'

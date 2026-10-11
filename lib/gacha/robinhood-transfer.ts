@@ -33,6 +33,50 @@ export function parseUsdg(input: string, cap: bigint): bigint | null {
   return raw
 }
 
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+}
+
+function walletErrorCode(err: unknown): number | null {
+  if (typeof err === 'object' && err !== null && 'code' in err && typeof err.code === 'number') return err.code
+  return null
+}
+
+export async function ensureRobinhood(provider: EthereumProvider): Promise<string> {
+  try {
+    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ROBINHOOD_CHAIN_HEX }] })
+  } catch (err) {
+    if (walletErrorCode(err) !== 4902) throw err
+    await provider.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: ROBINHOOD_CHAIN_HEX,
+        chainName: 'Robinhood Chain',
+        nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+        rpcUrls: [ROBINHOOD_RPC],
+        blockExplorerUrls: [ROBINHOOD_EXPLORER],
+      }],
+    })
+  }
+  const accounts = await provider.request({ method: 'eth_requestAccounts' })
+  const from = Array.isArray(accounts) ? accounts[0] : ''
+  if (typeof from !== 'string' || !/^0x[a-fA-F0-9]{40}$/.test(from)) {
+    throw new Error('Wallet did not return an account')
+  }
+  return from
+}
+
+export async function sendRobinhoodCall(provider: EthereumProvider, from: string, to: string, data: string): Promise<string> {
+  const hash = await provider.request({
+    method: 'eth_sendTransaction',
+    params: [{ from, to, data, value: '0x0' }],
+  })
+  if (typeof hash !== 'string' || !/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+    throw new Error('Wallet did not return a transaction hash')
+  }
+  return hash
+}
+
 export function encodeUsdgTransfer(to: string, amount: bigint): string {
   if (!/^0x[a-fA-F0-9]{40}$/.test(to)) throw new Error('Treasury address is not configured')
   if (amount <= BigInt(0)) throw new Error('Pack price is not a positive amount')

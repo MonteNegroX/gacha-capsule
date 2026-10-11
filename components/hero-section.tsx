@@ -25,7 +25,7 @@ export function HeroSection() {
             <span className="text-[#3c8aff]">Compete.</span>
           </h1>
           <p className="text-base leading-relaxed text-[#b1b7c3] sm:text-lg">
-            Open a pack. Read the odds and the buyback. Borrow against a pull when the desk opens.
+            Open the $25 pack in USDG. Packs above $25 are coming soon.
           </p>
           <div className="flex flex-wrap items-center gap-3 pt-1">
             <a

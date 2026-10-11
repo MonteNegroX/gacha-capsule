@@ -31,4 +31,5 @@ export type SpinResult = {
   turboBuyback: boolean
   memo?: string | null
   nftAddress?: string | null
+  imageUrl?: string | null
 }

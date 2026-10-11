@@ -1,0 +1,19 @@
+{
+  "chainId": 4663,
+  "name": "CapsuleLend",
+  "address": "0xa7F89DE1FE71Aa4D37A9179231787b2aC1a4DcFc",
+  "stable": "0x5fc5360d0400a0fd4f2af552add042d716f1d168",
+  "admin": "0xd89D795dD6D8eB591A0BB0Cb5105a5EaD1d00E99",
+  "protocol": "0xd89D795dD6D8eB591A0BB0Cb5105a5EaD1d00E99",
+  "deployer": "0xcDE52f71F4f3A183B89E08c4Fa409F069cA103a5",
+  "deployTx": "0xd8834298c1c0d379a85a3f5803cd6ebbbfb572ec4590b373440da9773acca299",
+  "liveTest": {
+    "usdgBefore": "42586511",
+    "usdgAfter": "42586511",
+    "deals": [
+      "0x8402edef4b241a12b222ef38bb2d114ebc6651b252e9657e367128b276d4d2d4",
+      "0xfe2d230642bc25785d09f5504e25bca50386e6b0c6aeac7e4626c4ffc7dfe54a",
+      "0x0757c78353e223702772b1c1c947271fea603ec87ee3d3f4562f2bebeba68656"
+    ]
+  }
+}

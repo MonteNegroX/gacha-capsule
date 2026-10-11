@@ -1,6 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
+import { PackOpen } from '@/components/gacha/pack-open'
+import { packOpenable } from '@/lib/gacha/pack-access'
 import type { GachaMachine, Rarity } from '@/lib/gacha/types'
 
 const RARITIES: { id: Rarity; label: string; swatch: string }[] = [
@@ -25,7 +27,15 @@ function percent(value: number): string {
   return `${Number.isInteger(pct) ? pct.toFixed(0) : pct.toFixed(1)}%`
 }
 
-export function PackFloor({ machines, unavailable }: { machines: GachaMachine[]; unavailable?: boolean }) {
+export function PackFloor({
+  machines,
+  unavailable,
+  treasury = '',
+}: {
+  machines: GachaMachine[]
+  unavailable?: boolean
+  treasury?: string
+}) {
   const categories = useMemo(() => {
     const seen: string[] = []
     for (const machine of machines) {
@@ -49,7 +59,7 @@ export function PackFloor({ machines, unavailable }: { machines: GachaMachine[];
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Machines</p>
         <h2 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">The floor</h2>
         <p className="max-w-2xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
-          Pick a machine, read the odds, the expected value, and the instant buyback. Opening is not on this page.
+          Packs above $25 are coming soon. The $25 pack opens in USDG on Robinhood.
         </p>
       </div>
 
@@ -86,6 +96,7 @@ export function PackFloor({ machines, unavailable }: { machines: GachaMachine[];
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-4">
             {visible.map((machine) => {
               const active = machine.code === selected?.code
+              const closed = !packOpenable(machine.price)
               return (
                 <button
                   key={machine.code}
@@ -114,13 +125,13 @@ export function PackFloor({ machines, unavailable }: { machines: GachaMachine[];
                       <span className="block aspect-square" />
                     )}
                     <span className="absolute top-2 right-2 rounded-full bg-[#3c8aff] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                      {machine.instantBuyback}% buyback
+                      {closed ? 'Coming soon' : `${machine.instantBuyback}% buyback`}
                     </span>
                   </span>
                   <span className="mt-3 line-clamp-2 min-h-10 text-sm font-semibold text-white">{machine.name}</span>
                   <span className="mt-1 font-heading text-lg font-bold text-[#ffd12f]">{money(machine.price)}</span>
-                  <span className="mt-3 flex h-11 items-center justify-center rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white">
-                    View pack
+                  <span className={`mt-3 flex h-11 items-center justify-center rounded-xl text-sm font-bold uppercase tracking-wide ${closed ? 'bg-white/10 text-[#b1b7c3]' : 'bg-[#3c8aff] text-white'}`}>
+                    {closed ? 'Coming soon' : 'Open pack'}
                   </span>
                 </button>
               )
@@ -182,16 +193,17 @@ export function PackFloor({ machines, unavailable }: { machines: GachaMachine[];
                     )
                   })}
                 </ul>
-                <p className="text-xs text-[#717886]">
-                  Turbo sells a Common as soon as it lands. Opening is not on this page.
-                </p>
-                <button
-                  type="button"
-                  disabled
-                  className="h-12 rounded-xl bg-white/10 text-sm font-bold uppercase tracking-wide text-[#b1b7c3]"
-                >
-                  Early access
-                </button>
+                {packOpenable(selected.price) ? (
+                  <PackOpen code={selected.code} price={selected.price} treasury={treasury} />
+                ) : (
+                  <button
+                    type="button"
+                    disabled
+                    className="h-12 rounded-xl bg-white/10 text-sm font-bold uppercase tracking-wide text-[#b1b7c3]"
+                  >
+                    Coming soon
+                  </button>
+                )}
               </div>
             </div>
           )}

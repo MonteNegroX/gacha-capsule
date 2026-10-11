@@ -1,6 +1,7 @@
+import { DealFund } from '@/components/deal-fund'
 import type { GachaMachine } from '@/lib/gacha/types'
+import type { ListedDeal } from '@/lib/gacha/pull-store'
 import type { VaultListing } from '@/lib/gacha/vault-listing'
-import { VaultFund } from '@/components/vault-fund'
 
 function money(value: number): string {
   const digits = Number.isInteger(value) ? 0 : 2
@@ -27,7 +28,7 @@ function ListedDesk({ listing }: { listing: VaultListing }) {
             Fund the vault card.
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
-            This card stays in the Capsule vault. Lenders fund its Collector Crypt buyback in USDG, plus a 3% protocol fee. The 7-day term starts when the cap is filled.
+            This card stays in the Capsule vault. It was funded before the loan contract, so a new deposit is not open on it.
           </p>
           <figure className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_50%_28%,#1a2a4a_0%,#0a0b0d_68%)] p-6">
             <img
@@ -68,10 +69,8 @@ function ListedDesk({ listing }: { listing: VaultListing }) {
                 <p className="font-heading text-lg font-bold text-[#ffd12f]">{money(listing.capUsd)} USDG</p>
               </div>
               <div className="rounded-xl bg-black/30 px-3 py-2">
-                <p className="text-[10px] uppercase tracking-wide text-[#717886]">Funded</p>
-                <p className="font-heading text-lg font-bold text-white">
-                  {money(listing.fundedUsd)} / {money(listing.capUsd)}
-                </p>
+                <p className="text-[10px] uppercase tracking-wide text-[#717886]">Status</p>
+                <p className="font-heading text-lg font-bold text-white">Held</p>
               </div>
               <div className="rounded-xl bg-black/30 px-3 py-2">
                 <p className="text-[10px] uppercase tracking-wide text-[#717886]">Term</p>
@@ -85,7 +84,7 @@ function ListedDesk({ listing }: { listing: VaultListing }) {
               Vault {short(listing.vault)}
             </p>
 
-            <VaultFund treasury={listing.treasury} capRaw={listing.capRaw} fundedRaw={listing.fundedRaw} />
+            <p className="text-sm leading-relaxed text-[#b1b7c3]">Held in the vault. A new fund is not open on this card.</p>
           </div>
         </div>
       </div>
@@ -93,8 +92,28 @@ function ListedDesk({ listing }: { listing: VaultListing }) {
   )
 }
 
-export function BorrowDesk({ machine, listing = null }: { machine: GachaMachine | null; listing?: VaultListing | null }) {
-  if (listing) return <ListedDesk listing={listing} />
+export function BorrowDesk({
+  machine,
+  listing = null,
+  deals = [],
+  treasury = '',
+}: {
+  machine: GachaMachine | null
+  listing?: VaultListing | null
+  deals?: ListedDeal[]
+  treasury?: string
+}) {
+  return (
+    <div className="flex flex-col gap-16">
+      {listing ? <ListedDesk listing={listing} /> : <PreviewDesk machine={machine} />}
+      {deals.map((deal) => (
+        <DealFund key={deal.orderId} {...deal} treasury={treasury} />
+      ))}
+    </div>
+  )
+}
+
+function PreviewDesk({ machine }: { machine: GachaMachine | null }) {
   return (
     <section id="borrow" aria-labelledby="borrow-heading" className="scroll-mt-24">
       <div className="grid items-start gap-8 lg:grid-cols-[minmax(0,0.9fr)_minmax(0,1.1fr)]">

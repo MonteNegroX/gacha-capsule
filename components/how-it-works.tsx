@@ -6,22 +6,22 @@ type Shot = {
 const STEPS = [
   {
     title: 'Open a pack',
-    body: 'Pick a machine. The price is on the card.',
+    body: 'Pay 25 USDG on Robinhood. Packs above $25 say Coming soon.',
     href: '#packs',
   },
   {
-    title: 'Read the odds',
-    body: 'Expected value, tiers, and the buyback sit on the machine.',
+    title: 'See the card',
+    body: 'Insured value and the buyback quote show after the open.',
     href: '#packs',
   },
   {
-    title: 'Instant buyback',
-    body: 'The rate is printed on the pack.',
+    title: 'Choose',
+    body: 'Buy the card back, or Double a Common. You have 24 hours.',
     href: '#packs',
   },
   {
-    title: 'Borrow',
-    body: 'Lock a pull for a term. The desk is a preview.',
+    title: 'Fund a loss',
+    body: 'A lost Double lists the buyback for 7 days. The funder deposits that amount.',
     href: '#borrow',
   },
 ]

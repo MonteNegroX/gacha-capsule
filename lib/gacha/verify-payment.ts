@@ -6,6 +6,15 @@ export const ROBINHOOD = {
   confirmations: Number(process.env.GACHA_PAYMENT_CONFIRMATIONS ?? 1),
 }
 
+export const HYPERLIQUID = {
+  chainId: 999,
+  rpcUrl: process.env.HYPERLIQUID_RPC_URL?.trim() || 'https://rpc.hyperliquid.xyz/evm',
+  usdc: (process.env.HYPERLIQUID_USDC_ADDRESS?.trim() || '').toLowerCase(),
+  decimals: 6,
+  confirmations: Number(process.env.GACHA_PAYMENT_CONFIRMATIONS ?? 1),
+}
+
+
 const TRANSFER_TOPIC = '0xddf252ad1be2c89b69c2b068fc378daa952ba7f163c4a11628f55a4df523b3ef'
 
 export type TransferLog = {
@@ -31,7 +40,9 @@ export type PaymentCheck = {
 }
 
 export function treasuryAddress(): string {
-  return process.env.GACHA_TREASURY_ADDRESS?.trim().toLowerCase() ?? ''
+  const treasury = process.env.GACHA_TREASURY_ADDRESS?.trim().toLowerCase() ?? ''
+  if (!/^0x[a-fA-F0-9]{40}$/.test(treasury) || /^0x0{40}$/.test(treasury)) return ''
+  return treasury
 }
 
 export function toTokenUnits(amount: number, decimals: number): bigint {
@@ -91,15 +102,15 @@ export function readUsdgTransfer(
   }
 }
 
-async function rpc<T>(method: string, params: unknown[]): Promise<T> {
-  const res = await fetch(ROBINHOOD.rpcUrl, {
+async function rpc<T>(rpcUrl: string, method: string, params: unknown[]): Promise<T> {
+  const res = await fetch(rpcUrl, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
     body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }),
   })
-  if (!res.ok) throw new Error(`Robinhood RPC HTTP ${res.status}`)
+  if (!res.ok) throw new Error(`RPC HTTP ${res.status}`)
   const body = (await res.json()) as { result?: T; error?: { message?: string } }
-  if (body.error) throw new Error(body.error.message || 'Robinhood RPC error')
+  if (body.error) throw new Error(body.error.message || 'RPC error')
   return body.result as T
 }
 
@@ -112,17 +123,45 @@ export async function verifyRobinhoodPayment(txHash: string, priceUsd: number): 
     return { ok: false, terminal: false, error: 'Transaction hash is not a 32-byte hex value' }
   }
 
-  const receipt = await rpc<TxReceipt | null>('eth_getTransactionReceipt', [txHash])
+  const receipt = await rpc<TxReceipt | null>(ROBINHOOD.rpcUrl, 'eth_getTransactionReceipt', [txHash])
   const check = readUsdgTransfer(receipt, ROBINHOOD.usdg, treasury, toTokenUnits(priceUsd, ROBINHOOD.decimals))
   if (!check.ok || !receipt?.blockNumber) return check
 
-  const latest = await rpc<string>('eth_blockNumber', [])
+  const latest = await rpc<string>(ROBINHOOD.rpcUrl, 'eth_blockNumber', [])
   const confirmations = Number(BigInt(latest) - BigInt(receipt.blockNumber)) + 1
   if (confirmations < ROBINHOOD.confirmations) {
     return {
       ok: false,
       terminal: false,
       error: `Waiting for confirmations (${confirmations}/${ROBINHOOD.confirmations})`,
+    }
+  }
+  return check
+}
+
+export async function verifyHyperliquidPayment(txHash: string, priceUsd: number): Promise<PaymentCheck> {
+  const treasury = treasuryAddress()
+  if (!/^0x[a-fA-F0-9]{40}$/.test(treasury)) {
+    return { ok: false, terminal: false, error: 'Treasury address is not configured' }
+  }
+  if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
+    return { ok: false, terminal: false, error: 'Transaction hash is not a 32-byte hex value' }
+  }
+  if (!HYPERLIQUID.usdc) {
+    return { ok: false, terminal: false, error: 'HYPERLIQUID_USDC_ADDRESS is not configured' }
+  }
+
+  const receipt = await rpc<TxReceipt | null>(HYPERLIQUID.rpcUrl, 'eth_getTransactionReceipt', [txHash])
+  const check = readUsdgTransfer(receipt, HYPERLIQUID.usdc, treasury, toTokenUnits(priceUsd, HYPERLIQUID.decimals))
+  if (!check.ok || !receipt?.blockNumber) return check
+
+  const latest = await rpc<string>(HYPERLIQUID.rpcUrl, 'eth_blockNumber', [])
+  const confirmations = Number(BigInt(latest) - BigInt(receipt.blockNumber)) + 1
+  if (confirmations < HYPERLIQUID.confirmations) {
+    return {
+      ok: false,
+      terminal: false,
+      error: `Waiting for confirmations (${confirmations}/${HYPERLIQUID.confirmations})`,
     }
   }
   return check

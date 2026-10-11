@@ -9,7 +9,11 @@ import { LeaderboardCard } from '@/components/leaderboard-card'
 import { SiteFooter } from '@/components/site-footer'
 import { loadPublicMachines } from '@/lib/gacha/catalog'
 import type { GachaMachine } from '@/lib/gacha/types'
+import { listListedDeals, type ListedDeal } from '@/lib/gacha/pull-store'
 import { loadVaultListing } from '@/lib/gacha/vault-listing'
+import { treasuryAddress } from '@/lib/gacha/verify-payment'
+
+export const dynamic = 'force-dynamic'
 
 export default async function Page() {
   let machines: GachaMachine[] = []
@@ -26,6 +30,13 @@ export default async function Page() {
       : [],
   )
   const starter = machines.find((machine) => machine.code === 'pokemon_25') ?? machines[0] ?? null
+  const treasury = treasuryAddress()
+  let deals: ListedDeal[] = []
+  try {
+    deals = await listListedDeals()
+  } catch {
+    deals = []
+  }
 
   return (
     <main className="min-h-screen bg-[#0a0b0d]">
@@ -34,8 +45,8 @@ export default async function Page() {
 
       <div className="mx-auto flex max-w-7xl flex-col gap-16 px-4 py-14 sm:px-6 lg:px-8">
         <HowItWorks shots={shots.slice(0, 4)} />
-        <PackFloor machines={machines} unavailable={unavailable} />
-        <BorrowDesk machine={starter} listing={loadVaultListing()} />
+        <PackFloor machines={machines} unavailable={unavailable} treasury={treasury} />
+        <BorrowDesk machine={starter} listing={loadVaultListing()} deals={deals} treasury={treasury} />
 
         <section id="quests" className="grid scroll-mt-24 grid-cols-1 gap-6 md:grid-cols-2">
           <StatusCard />
