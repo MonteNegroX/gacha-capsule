@@ -191,7 +191,6 @@ export function PackOpen({
   if ((opening || order) && !order?.cardName) {
     return (
       <div className={styles.stage} aria-live="polite">
-        <div className={styles.slab} />
         <p className="text-center text-sm text-[#b1b7c3]">{order ? statusCopy(order) : 'Confirming the payment.'}</p>
         <div className={styles.lines}>
           {REVEAL.map((line) => (
@@ -201,6 +200,7 @@ export function PackOpen({
             </div>
           ))}
         </div>
+        <div className={styles.slab} />
         {error && <p className="text-sm text-[#fc401f]">{error}</p>}
       </div>
     )
