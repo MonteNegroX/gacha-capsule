@@ -19,6 +19,12 @@ fillEnv(join(root, '.env'))
 fillEnv(join(root, '.env.local'))
 fillEnv(join(process.env.GACHA_BOT_DIR?.trim() || 'C:\\Users\\main\\collector-gacha-bot', '.env'))
 
+const databaseUrl = process.env.DATABASE_URL
+if (databaseUrl && !databaseUrl.includes('connection_limit=')) {
+  const joinChar = databaseUrl.includes('?') ? '&' : '?'
+  process.env.DATABASE_URL = `${databaseUrl}${joinChar}connection_limit=1&pool_timeout=20`
+}
+
 async function main() {
   const { runWorker } = await import('../lib/gacha/worker-run.ts')
   await runWorker()

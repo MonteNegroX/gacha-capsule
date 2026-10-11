@@ -36,7 +36,7 @@ function sleep(ms: number): Promise<void> {
 
 function note(err: unknown): string {
   const message = err instanceof Error ? err.message : 'Vault call failed'
-  return message.replace(/0x[a-fA-F0-9]{64}/g, '0x…').slice(0, 240)
+  return message.replace(/postgres(?:ql)?:\/\/\S+/gi, 'db').replace(/0x[a-fA-F0-9]{64}/g, '0x…').slice(0, 240)
 }
 
 function botJson(script: string, arg: string, extra?: string): Promise<Record<string, unknown>> {
@@ -298,8 +298,8 @@ export async function runWorker(): Promise<void> {
   }
   console.log('capsule worker running')
   for (;;) {
-    await beatWorker(Date.now())
     try {
+      await beatWorker(Date.now())
       await tick()
     } catch (err) {
       console.log(note(err))

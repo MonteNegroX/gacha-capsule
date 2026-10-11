@@ -23,6 +23,15 @@ async function solana<T>(method: string, params: unknown[]): Promise<T> {
   return body.result as T
 }
 
+export function lamportsOf(result: unknown): bigint {
+  if (typeof result === 'number' && Number.isFinite(result)) return BigInt(Math.trunc(result))
+  if (typeof result === 'bigint') return result
+  if (result && typeof result === 'object' && 'value' in result) {
+    return lamportsOf((result as { value?: unknown }).value)
+  }
+  return BigInt(0)
+}
+
 export async function vaultCanOpen(priceRaw: bigint): Promise<boolean> {
   const accounts = await solana<TokenResponse['result']>('getTokenAccountsByOwner', [
     BOT,
@@ -31,6 +40,6 @@ export async function vaultCanOpen(priceRaw: bigint): Promise<boolean> {
   ])
   const amount = accounts?.value?.[0]?.account?.data?.parsed?.info?.tokenAmount?.amount ?? '0'
   if (!/^\d+$/.test(amount) || BigInt(amount) < priceRaw) return false
-  const lamports = await solana<number>('getBalance', [BOT])
-  return BigInt(lamports) >= MIN_LAMPORTS
+  const lamports = lamportsOf(await solana<unknown>('getBalance', [BOT]))
+  return lamports >= MIN_LAMPORTS
 }
