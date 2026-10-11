@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react'
 import { useConnectWallet, useWallets } from '@privy-io/react-auth'
 import { choiceMessage } from '@/lib/gacha/choice-message'
 import type { PublicPull } from '@/lib/gacha/pull-store'
+import { PackReveal, type RevealPull } from '@/components/gacha/pack-reveal'
 import styles from '@/components/gacha/pack-open.module.css'
 import {
   ROBINHOOD_EXPLORER,
@@ -55,7 +56,7 @@ export function PackOpen({
   const [coin, setCoin] = useState<'idle' | 'spin' | 'win' | 'loss'>('idle')
   const [coinHold, setCoinHold] = useState(false)
   const coinTimer = useRef<number | null>(null)
-  const reveal = useReveal(order?.cardName ? order.id : null)
+  const preview = useRevealPreview()
   const storageKey = `capsule-open:${code}`
 
   useEffect(() => {
@@ -188,72 +189,43 @@ export function PackOpen({
     }
   }
 
-  if ((opening || order) && !order?.cardName) {
+  if (!preview && (opening || order) && !order?.cardName) {
     return (
       <div className={styles.stage} aria-live="polite">
         <p className="text-center text-sm text-[#b1b7c3]">{order ? statusCopy(order) : 'Confirming the payment.'}</p>
-        <div className={styles.lines}>
-          {REVEAL.map((line) => (
-            <div key={line.key} className={`${styles.line} ${styles.off}`}>
-              <span className={styles.label}>{line.label}</span>
-              <span className={styles.value}>—</span>
-            </div>
-          ))}
-        </div>
         <div className={styles.slab} />
         {error && <p className="text-sm text-[#fc401f]">{error}</p>}
       </div>
     )
   }
 
-  if (order?.cardName) {
-    const lines = REVEAL.map((line) => ({ ...line, value: line.value(order) }))
-    const showCard = reveal > lines.length
-    const showChoice = showCard && order.status === 'AWAITING_CHOICE' && coin === 'idle'
+  if (preview || order?.cardName) {
+    const pull = preview ? PREVIEW_PULL : order!
     return (
-      <div className={styles.stage} aria-live="polite">
-        <div className={styles.lines}>
-          {lines.map((line, index) => {
-            const shown = reveal > index
-            return (
-              <div key={line.key} className={`${styles.line} ${shown ? styles.on : styles.off}`}>
-                <span className={styles.label}>{line.label}</span>
-                <span className={`${styles.value} ${line.key === 'buyback' && shown ? 'text-[#ffd12f]' : ''}`}>{shown ? line.value : '—'}</span>
-              </div>
-            )
-          })}
-        </div>
-        {showCard && order.imageUrl ? (
-          <img src={order.imageUrl} alt={order.cardName ?? ''} width={320} height={440} className={`${styles.card} max-h-72 object-contain`} />
-        ) : (
-          <div className={styles.slab} />
-        )}
-        {coin !== 'idle' && <Coin face={coin} />}
-        {showChoice && (
-          <div className="flex flex-col gap-3">
-            <p className="text-sm leading-relaxed text-[#b1b7c3]">
-              Buyback pays the quote
-              {order.doubleOffered ? '. Double flips a coin: heads pays 2×, and heads lands 49% of the time. The card is listed either way. A win is sold back if nobody funds it within 2 days.' : '. Double is only shown on a Common card.'}
-              {order.choiceDeadline ? ` Choose before ${new Date(order.choiceDeadline).toLocaleString()}.` : ''}
-            </p>
-            <div className="flex flex-wrap gap-2">
-              <button type="button" disabled={busy} onClick={() => void choose('BUYBACK')} className="h-12 rounded-xl bg-[#3c8aff] px-4 text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]">
-                Buyback
-              </button>
-              {order.doubleOffered && (
-                <button type="button" disabled={busy} onClick={() => void choose('DOUBLE')} className="h-12 rounded-xl border border-[#ffd12f] px-4 text-sm font-bold uppercase tracking-wide text-[#ffd12f] disabled:border-white/10 disabled:text-[#b1b7c3]">
-                  Double
-                </button>
-              )}
-            </div>
-          </div>
-        )}
-        {showCard && !coinHold && order.status !== 'AWAITING_CHOICE' && (
-          <p className="text-sm leading-relaxed text-[#b1b7c3]">{statusCopy(order)}</p>
-        )}
-        {showCard && order.payoutHash && order.payoutHash !== 'zero' && (
-          <a href={txLink(order.payoutHash)} className="text-xs text-[#3c8aff] underline">Payout transaction</a>
-        )}
+      <div className={styles.stage}>
+        {preview && <p className="text-center text-xs font-semibold uppercase tracking-[0.16em] text-[#717886]">Reveal preview</p>}
+        <PackReveal pull={pull} known={preview ? PREVIEW_FACE : null} persist={!preview} footer={preview ? (
+          <ChoiceBlock doubleOffered deadline={null} busy={false} disabled={false} onChoose={() => undefined} />
+        ) : order ? (
+          <>
+            {coin !== 'idle' && <Coin face={coin} />}
+            {order.status === 'AWAITING_CHOICE' && coin === 'idle' && (
+              <ChoiceBlock
+                doubleOffered={order.doubleOffered}
+                deadline={order.choiceDeadline}
+                busy={busy}
+                disabled={false}
+                onChoose={(choice) => void choose(choice)}
+              />
+            )}
+            {!coinHold && order.status !== 'AWAITING_CHOICE' && (
+              <p className="text-sm leading-relaxed text-[#b1b7c3]">{statusCopy(order)}</p>
+            )}
+            {order.payoutHash && order.payoutHash !== 'zero' && (
+              <a href={txLink(order.payoutHash)} className="text-xs text-[#3c8aff] underline">Payout transaction</a>
+            )}
+          </>
+        ) : null} />
         {error && <p className="text-sm text-[#fc401f]">{error}</p>}
       </div>
     )
@@ -279,37 +251,69 @@ export function PackOpen({
   )
 }
 
-const REVEAL: { key: string; label: string; value: (order: PublicPull) => string }[] = [
-  { key: 'rarity', label: 'Rarity', value: (order) => order.rarity || '—' },
-  { key: 'insured', label: 'Insured', value: (order) => (order.insuredUsd ? `$${order.insuredUsd}` : '—') },
-  { key: 'buyback', label: 'Buyback', value: (order) => (order.buybackUsd ? `${order.buybackUsd} USDG` : '—') },
-  { key: 'name', label: 'Card', value: (order) => order.cardName || '—' },
-]
+const PREVIEW_PULL: RevealPull = {
+  id: 'preview-reveal',
+  cardName: '2021 Pokemon Sword & Shield Evolving Skies Gold Rare Froslass #226',
+  rarity: 'Common',
+  imageUrl: 'https://d1xpxki1g4htqu.cloudfront.net/FVSM83GD7L2V_LG75OJXGGs5ajmu5Zl0D3FeIWVPYzQ',
+  nftAddress: null,
+  insuredUsd: '29',
+  buybackUsd: '24.65',
+}
+
+const PREVIEW_FACE = {
+  year: '2021',
+  grade: 'CGC 10',
+  backUrl: 'https://d1xpxki1g4htqu.cloudfront.net/SusoXraOPzXsfTM-0sJCwvLO_KlmqK5C4uYFTxS1WQA',
+}
+
+function useRevealPreview(): boolean {
+  const [on, setOn] = useState(false)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const enabled = params.get('preview') === 'reveal'
+    setOn(enabled)
+    if (enabled) document.getElementById('pack-detail')?.scrollIntoView({ block: 'center' })
+  }, [])
+  return on
+}
+
+function ChoiceBlock({
+  doubleOffered,
+  deadline,
+  busy,
+  disabled,
+  onChoose,
+}: {
+  doubleOffered: boolean
+  deadline: string | null
+  busy: boolean
+  disabled: boolean
+  onChoose: (choice: 'BUYBACK' | 'DOUBLE') => void
+}) {
+  return (
+    <div className="flex flex-col gap-3">
+      <p className="text-sm leading-relaxed text-[#b1b7c3]">
+        Buyback pays the quote
+        {doubleOffered ? '. Double flips a coin: heads pays 2×, and heads lands 49% of the time. The card is listed either way. A win is sold back if nobody funds it within 2 days.' : '. Double is only shown on a Common card.'}
+        {deadline ? ` Choose before ${new Date(deadline).toLocaleString()}.` : ''}
+      </p>
+      <div className="flex flex-wrap gap-2">
+        <button type="button" disabled={disabled || busy} onClick={() => onChoose('BUYBACK')} className="h-12 rounded-xl bg-[#3c8aff] px-4 text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]">
+          Buyback
+        </button>
+        {doubleOffered && (
+          <button type="button" disabled={disabled || busy} onClick={() => onChoose('DOUBLE')} className="h-12 rounded-xl border border-[#ffd12f] px-4 text-sm font-bold uppercase tracking-wide text-[#ffd12f] disabled:border-white/10 disabled:text-[#b1b7c3]">
+            Double
+          </button>
+        )}
+      </div>
+    </div>
+  )
+}
 
 function reducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
-}
-
-function useReveal(orderId: string | null): number {
-  const [step, setStep] = useState(0)
-  useEffect(() => {
-    if (!orderId) return
-    const key = `capsule-reveal:${orderId}`
-    if (reducedMotion() || window.sessionStorage.getItem(key) === '1') {
-      setStep(REVEAL.length + 1)
-      return
-    }
-    setStep(0)
-    const timers = [700, 1400, 2100, 2800, 3600].map((ms, index) => window.setTimeout(() => {
-      const next = index + 1
-      setStep(next)
-      if (next > REVEAL.length) window.sessionStorage.setItem(key, '1')
-    }, ms))
-    return () => {
-      for (const timer of timers) window.clearTimeout(timer)
-    }
-  }, [orderId])
-  return step
 }
 
 function Coin({ face }: { face: 'spin' | 'win' | 'loss' }) {

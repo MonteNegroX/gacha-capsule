@@ -192,3 +192,218 @@
     transform: rotateY(1980deg);
   }
 }
+
+.reveal {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.scene {
+  position: relative;
+  width: min(15rem, 100%);
+  margin-inline: auto;
+  perspective: 1000px;
+}
+
+.flipper {
+  position: relative;
+  aspect-ratio: 63 / 88;
+  transform-style: preserve-3d;
+  translate: 0;
+  rotate: y 0deg;
+  scale: 1;
+}
+
+.flipped {
+  rotate: y 180deg;
+}
+
+.side {
+  position: absolute;
+  inset: 0;
+  backface-visibility: hidden;
+  translate: 0;
+  rotate: y 0deg;
+  scale: 1;
+}
+
+.front {
+  rotate: y 180deg;
+}
+
+.shot {
+  height: 100%;
+  overflow: hidden;
+  border: 1px solid rgb(255 255 255 / 0.08);
+  border-radius: 0.85rem;
+  background: #0e1116;
+}
+
+.shotImg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  background: #0e1116;
+}
+
+.plate {
+  display: grid;
+  height: 100%;
+  place-items: center;
+  border-radius: 0.85rem;
+  background:
+    linear-gradient(160deg, rgb(255 209 47 / 0.18), transparent 36%),
+    linear-gradient(180deg, #1a2230, #0c0e12);
+  box-shadow: inset 0 0 0 1px rgb(255 209 47 / 0.45);
+  color: #ffd12f;
+  font-size: 0.78rem;
+  font-weight: 700;
+  letter-spacing: 0.22em;
+}
+
+.hero {
+  position: absolute;
+  inset: 0;
+  z-index: 3;
+  display: grid;
+  place-items: center;
+  margin: 0;
+  pointer-events: none;
+  color: #fff;
+  font-size: clamp(2rem, 8vw, 3.25rem);
+  font-weight: 700;
+  letter-spacing: -0.04em;
+  line-height: 0.9;
+  white-space: nowrap;
+  text-shadow: 0 0.12em 0.4em rgb(0 0 0 / 0.75);
+  translate: 0;
+  rotate: 0deg;
+  scale: 1;
+}
+
+.caption {
+  display: flex;
+  justify-content: center;
+  gap: 1.4rem;
+  min-height: 2.75rem;
+}
+
+.cell {
+  min-width: 4.2rem;
+  opacity: 0;
+  translate: 0 -0.35rem;
+  rotate: 0deg;
+  scale: 1;
+  text-align: center;
+}
+
+.cellOn {
+  animation: cap-in 0.45s ease forwards;
+}
+
+.cellLabel {
+  display: block;
+  color: #717886;
+  font-size: 0.62rem;
+  font-weight: 600;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+}
+
+.cellValue {
+  display: block;
+  margin-top: 0.15rem;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 700;
+}
+
+.cardName {
+  margin: 0;
+  color: #fff;
+  font-size: 0.95rem;
+  font-weight: 700;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .scene {
+    animation: back-in 0.7s ease both;
+  }
+
+  .flipper {
+    transition: rotate 0.8s cubic-bezier(0.16, 0.72, 0.2, 1);
+  }
+
+  .hero {
+    animation-name: title-pass;
+    animation-duration: 3.2s;
+    animation-timing-function: cubic-bezier(0.16, 0.72, 0.2, 1);
+    animation-fill-mode: both;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .cellOn {
+    animation: none;
+    opacity: 1;
+    translate: 0;
+  }
+}
+
+@keyframes back-in {
+  from {
+    opacity: 0.12;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes title-pass {
+  0% {
+    opacity: 0;
+    scale: 1.85;
+    translate: 0 0.4rem;
+  }
+
+  16% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+
+  72% {
+    opacity: 1;
+    scale: 1;
+    translate: 0 0;
+  }
+
+  100% {
+    opacity: 0;
+    scale: 0.34;
+    translate: 0 12rem;
+  }
+}
+
+@keyframes cap-in {
+  from {
+    opacity: 0;
+    translate: 0 -0.35rem;
+  }
+
+  to {
+    opacity: 1;
+    translate: 0 0;
+  }
+}
+
+.instant,
+.instant .flipper {
+  animation: none;
+  transition: none;
+}
