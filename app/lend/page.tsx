@@ -15,11 +15,14 @@ export const metadata: Metadata = {
 
 export default async function LendPage() {
   const treasury = treasuryAddress()
-  const [listed, pledged] = await Promise.all([
-    listListedDeals().catch(() => []),
-    listPledgedDeals().catch(() => []),
-  ])
-  const deals = [...listed, ...pledged]
+  let deals: Awaited<ReturnType<typeof listListedDeals>> = []
+  let dealsUnavailable = false
+  try {
+    const [listed, pledged] = await Promise.all([listListedDeals(), listPledgedDeals()])
+    deals = [...listed, ...pledged]
+  } catch {
+    dealsUnavailable = true
+  }
 
   return (
     <SiteFrame>
@@ -35,7 +38,8 @@ export default async function LendPage() {
 
       <section className="flex flex-col gap-6" aria-label="Listed cards">
         <h2 className="font-heading text-2xl font-bold text-white">Listed now</h2>
-        {deals.length === 0 ? <p className="text-sm text-[#b1b7c3]">No card is listed yet.</p> : null}
+        {dealsUnavailable ? <p className="text-sm text-[#b1b7c3]">Listed cards are unavailable right now.</p> : null}
+        {!dealsUnavailable && deals.length === 0 ? <p className="text-sm text-[#b1b7c3]">No card is listed yet.</p> : null}
         {deals.map((deal) => (
           <DealFund key={deal.orderId} {...deal} treasury={treasury} />
         ))}
