@@ -55,7 +55,15 @@ export function PackOpen({
   const [coin, setCoin] = useState<'idle' | 'spin' | 'win' | 'loss'>('idle')
   const [coinHold, setCoinHold] = useState(false)
   const coinTimer = useRef<number | null>(null)
-  const reveal = useReveal(order?.cardName ? order.id : null)
+  const waited = useRef(false)
+  const [openedCrack, setOpenedCrack] = useState<string | null>(null)
+  const [preview, setPreview] = useState<'off' | 'shake' | 'split'>('off')
+  if ((opening || order) && !order?.cardName) waited.current = true
+  const crackPlayed = order?.id
+    ? openedCrack === order.id || (typeof window !== 'undefined' && window.sessionStorage.getItem(crackKey(order.id)) === '1')
+    : false
+  const splitting = Boolean(order?.cardName && waited.current && !crackPlayed)
+  const reveal = useReveal(order?.cardName ? order.id : null, splitting)
   const storageKey = `capsule-open:${code}`
 
   useEffect(() => {
@@ -107,6 +115,36 @@ export function PackOpen({
       window.clearInterval(timer)
     }
   }, [order])
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    if (params.get('preview') !== 'capsule') return
+    let cancelled = false
+    const timers: number[] = []
+    function cycle() {
+      if (cancelled) return
+      setPreview('shake')
+      timers.push(window.setTimeout(() => {
+        if (cancelled) return
+        setPreview('split')
+        timers.push(window.setTimeout(cycle, reducedMotion() ? 400 : 1700))
+      }, reducedMotion() ? 400 : 1800))
+    }
+    cycle()
+    return () => {
+      cancelled = true
+      for (const timer of timers) window.clearTimeout(timer)
+    }
+  }, [])
+
+  useEffect(() => {
+    if (!splitting || !order?.id) return
+    const timer = window.setTimeout(() => {
+      window.sessionStorage.setItem(crackKey(order.id), '1')
+      setOpenedCrack(order.id)
+    }, reducedMotion() ? 0 : 980)
+    return () => window.clearTimeout(timer)
+  }, [splitting, order?.id])
 
   async function pay(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -200,7 +238,25 @@ export function PackOpen({
             </div>
           ))}
         </div>
-        <div className={styles.slab} />
+        <Capsule mode="shake" />
+        {error && <p className="text-sm text-[#fc401f]">{error}</p>}
+      </div>
+    )
+  }
+
+  if (order?.cardName && splitting) {
+    return (
+      <div className={styles.stage} aria-live="polite">
+        <p className="text-center text-sm text-[#b1b7c3]">{statusCopy(order)}</p>
+        <div className={styles.lines}>
+          {REVEAL.map((line) => (
+            <div key={line.key} className={`${styles.line} ${styles.off}`}>
+              <span className={styles.label}>{line.label}</span>
+              <span className={styles.value}>—</span>
+            </div>
+          ))}
+        </div>
+        <Capsule mode="split" imageUrl={order.imageUrl} cardName={order.cardName} />
         {error && <p className="text-sm text-[#fc401f]">{error}</p>}
       </div>
     )
@@ -223,8 +279,8 @@ export function PackOpen({
             )
           })}
         </div>
-        {showCard && order.imageUrl ? (
-          <img src={order.imageUrl} alt={order.cardName ?? ''} width={320} height={440} className={`${styles.card} max-h-72 object-contain`} />
+        {(showCard || openedCrack === order.id) && order.imageUrl ? (
+          <img src={order.imageUrl} alt={order.cardName ?? ''} width={320} height={440} className={`${styles.card} max-h-72 object-contain ${openedCrack === order.id ? styles.settled : ''}`} />
         ) : (
           <div className={styles.slab} />
         )}
@@ -259,6 +315,23 @@ export function PackOpen({
     )
   }
 
+  if (!order && preview !== 'off') {
+    return (
+      <div className={styles.stage} aria-live="polite">
+        <p className="text-center text-sm text-[#b1b7c3]">The pack is opening.</p>
+        <div className={styles.lines}>
+          {REVEAL.map((line) => (
+            <div key={line.key} className={`${styles.line} ${styles.off}`}>
+              <span className={styles.label}>{line.label}</span>
+              <span className={styles.value}>—</span>
+            </div>
+          ))}
+        </div>
+        <Capsule mode={preview === 'split' ? 'split' : 'shake'} preview />
+      </div>
+    )
+  }
+
   return (
     <form onSubmit={pay} className="flex flex-col gap-3">
       <p className="text-sm leading-relaxed text-[#b1b7c3]">
@@ -286,14 +359,18 @@ const REVEAL: { key: string; label: string; value: (order: PublicPull) => string
   { key: 'name', label: 'Card', value: (order) => order.cardName || '—' },
 ]
 
+function crackKey(orderId: string): string {
+  return `capsule-crack:${orderId}`
+}
+
 function reducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-function useReveal(orderId: string | null): number {
+function useReveal(orderId: string | null, hold: boolean): number {
   const [step, setStep] = useState(0)
   useEffect(() => {
-    if (!orderId) return
+    if (!orderId || hold) return
     const key = `capsule-reveal:${orderId}`
     if (reducedMotion() || window.sessionStorage.getItem(key) === '1') {
       setStep(REVEAL.length + 1)
@@ -308,8 +385,34 @@ function useReveal(orderId: string | null): number {
     return () => {
       for (const timer of timers) window.clearTimeout(timer)
     }
-  }, [orderId])
+  }, [orderId, hold])
   return step
+}
+
+function Capsule({
+  mode,
+  imageUrl,
+  cardName,
+  preview = false,
+}: {
+  mode: 'shake' | 'split'
+  imageUrl?: string | null
+  cardName?: string | null
+  preview?: boolean
+}) {
+  return (
+    <div className={styles.shell} aria-hidden="true">
+      {mode === 'split' && imageUrl && (
+        <img src={imageUrl} alt={cardName ?? ''} width={320} height={440} className={`${styles.card} ${styles.emerge}`} />
+      )}
+      {mode === 'split' && preview && <div className={`${styles.back} ${styles.emerge}`} />}
+      <div className={`${styles.ball} ${mode === 'shake' ? styles.rattle : ''}`}>
+        <div className={`${styles.half} ${styles.capTop} ${mode === 'split' ? styles.splitTop : ''}`} />
+        <div className={`${styles.half} ${styles.capBottom} ${mode === 'split' ? styles.splitBottom : ''}`} />
+        <span className={styles.seam} />
+      </div>
+    </div>
+  )
 }
 
 function Coin({ face }: { face: 'spin' | 'win' | 'loss' }) {
