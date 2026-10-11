@@ -1,12 +1,14 @@
-const BOT = '41NaNu6LNhDStmzEqGZHvHsawjtaBTVbR9GZdnQJ3193'
+export const VAULT_ADDRESS = '41NaNu6LNhDStmzEqGZHvHsawjtaBTVbR9GZdnQJ3193'
+const BOT = VAULT_ADDRESS
 const USDC = 'EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v'
+const TOKEN_2022 = 'TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb'
 const SOLANA_RPC = 'https://api.mainnet-beta.solana.com'
 const MIN_LAMPORTS = BigInt('15000000')
 
 type TokenResponse = {
   result?: {
     value?: Array<{
-      account?: { data?: { parsed?: { info?: { tokenAmount?: { amount?: string } } } } }
+      account?: { data?: { parsed?: { info?: { mint?: string; tokenAmount?: { amount?: string } } } } }
     }>
   }
 }
@@ -32,14 +34,41 @@ export function lamportsOf(result: unknown): bigint {
   return BigInt(0)
 }
 
-export async function vaultCanOpen(priceRaw: bigint): Promise<boolean> {
+async function tokenAmount(mint: string): Promise<bigint> {
   const accounts = await solana<TokenResponse['result']>('getTokenAccountsByOwner', [
     BOT,
-    { mint: USDC },
+    { mint },
     { encoding: 'jsonParsed' },
   ])
   const amount = accounts?.value?.[0]?.account?.data?.parsed?.info?.tokenAmount?.amount ?? '0'
-  if (!/^\d+$/.test(amount) || BigInt(amount) < priceRaw) return false
+  return /^\d+$/.test(amount) ? BigInt(amount) : BigInt(0)
+}
+
+export async function vaultUsdcRaw(): Promise<bigint> {
+  return tokenAmount(USDC)
+}
+
+function amountOf(info: { tokenAmount?: { amount?: string } } | undefined): bigint {
+  const amount = info?.tokenAmount?.amount ?? '0'
+  return /^\d+$/.test(amount) ? BigInt(amount) : BigInt(0)
+}
+
+export async function vaultHoldsMint(mint: string): Promise<boolean> {
+  if ((await tokenAmount(mint)) > BigInt(0)) return true
+  const accounts = await solana<TokenResponse['result']>('getTokenAccountsByOwner', [
+    BOT,
+    { programId: TOKEN_2022 },
+    { encoding: 'jsonParsed' },
+  ])
+  for (const item of accounts?.value ?? []) {
+    const info = item.account?.data?.parsed?.info
+    if (info?.mint === mint && amountOf(info) > BigInt(0)) return true
+  }
+  return false
+}
+
+export async function vaultCanOpen(priceRaw: bigint): Promise<boolean> {
+  if ((await vaultUsdcRaw()) < priceRaw) return false
   const lamports = lamportsOf(await solana<unknown>('getBalance', [BOT]))
   return lamports >= MIN_LAMPORTS
 }

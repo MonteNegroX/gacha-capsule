@@ -23,16 +23,20 @@ import { quoteBuyback, openPackLive } from '@/lib/gacha/live-open'
 import { readDeal } from '@/lib/gacha/lend-read'
 import {
   beatWorker,
+  listCollateral,
   listPulls,
   listUnsoldWins,
+  mintAlreadyOpened,
+  saveCollateral,
   toDomain,
   writeDomain,
+  type CollateralRow,
   type PullRow,
 } from '@/lib/gacha/pull-store'
 import { cancelLendDeal, createLendDeal, dealIdFor, sendUsdg, treasuryAddressMatches, treasuryUsdgBalance, withdrawLendPrincipal } from '@/lib/gacha/treasury-tx'
 import { parseUnits, refundToRaw } from '@/lib/gacha/units'
 import { treasuryAddress } from '@/lib/gacha/verify-payment'
-import { vaultCanOpen } from '@/lib/gacha/vault-stock'
+import { vaultCanOpen, vaultHoldsMint } from '@/lib/gacha/vault-stock'
 
 function sleep(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms))
@@ -370,6 +374,56 @@ async function tick(): Promise<void> {
   for (const row of await listUnsoldWins()) {
     if (row.lend_deal_id) await expireUnclaimedWin(row)
     else await listWin(row)
+  }
+  for (const row of await listCollateral('REQUESTED')) await pledgeCollateral(row)
+  for (const row of await listCollateral('LISTED')) await maintainCollateral(row)
+}
+
+async function pledgeCollateral(row: CollateralRow): Promise<void> {
+  if (row.mint === HELD_JOLTEON || (await mintAlreadyOpened(row.mint))) {
+    await saveCollateral(row.id, { status: 'REJECTED', error: 'This card is already held by an open' })
+    return
+  }
+  let held = false
+  try {
+    held = await vaultHoldsMint(row.mint)
+  } catch {
+    return
+  }
+  if (!held) {
+    if (row.error !== 'The card is not in the vault yet') {
+      await saveCollateral(row.id, { error: 'The card is not in the vault yet' })
+    }
+    return
+  }
+  const owner = row.owner
+  const principal = BigInt(row.principal_raw)
+  let dealId = dealIdFor(row.id)
+  try {
+    dealId = await createLendDeal(row.id, owner, principal)
+  } catch (err) {
+    const existing = await readDeal(dealId).catch(() => null)
+    if (!existing || existing.status === 0) {
+      await saveCollateral(row.id, { error: note(err) })
+      return
+    }
+  }
+  await saveCollateral(row.id, { status: 'LISTED', deal_id: dealId, error: null })
+  console.log(`pledged ${row.id}`)
+}
+
+async function maintainCollateral(row: CollateralRow): Promise<void> {
+  if (!row.deal_id || row.mint === HELD_JOLTEON) return
+  const deal = await readDeal(row.deal_id).catch(() => null)
+  if (!deal || deal.status !== 4 || !row.solana_address || row.nft_send_sig) return
+  try {
+    const sent = await botJson('src/send-nft.ts', row.mint, row.solana_address)
+    const signature = typeof sent.signature === 'string' ? sent.signature : ''
+    if (!signature) throw new Error('NFT send did not return a signature')
+    await saveCollateral(row.id, { nft_send_sig: signature, error: null })
+    console.log(`sent pledged nft ${row.id}`)
+  } catch (err) {
+    await saveCollateral(row.id, { error: note(err) })
   }
 }
 

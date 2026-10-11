@@ -62,6 +62,12 @@ export function SiteFooter() {
             <span className="text-xs font-bold uppercase tracking-widest text-[#b1b7c3]">
               Legal
             </span>
+            <a href="/statistics" className="text-sm text-[#b1b7c3] hover:text-[#3c8aff] transition-colors">
+              Statistics
+            </a>
+            <a href="/lend" className="text-sm text-[#b1b7c3] hover:text-[#3c8aff] transition-colors">
+              Lend
+            </a>
             <a href="/terms" className="text-sm text-[#b1b7c3] hover:text-[#3c8aff] transition-colors">
               Terms of Service
             </a>

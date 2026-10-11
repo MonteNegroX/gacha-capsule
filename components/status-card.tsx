@@ -55,7 +55,7 @@ export function StatusCard() {
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-[#3c8aff]" />
           <span className="text-xs font-bold uppercase tracking-widest text-[#b1b7c3]">
-            Collector Profile
+            <a href="/profile" className="hover:text-[#3c8aff]">Collector Profile</a>
           </span>
         </div>
         {authenticated ? (

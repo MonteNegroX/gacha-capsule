@@ -109,6 +109,9 @@ export function BorrowDesk({
       {deals.map((deal) => (
         <DealFund key={deal.orderId} {...deal} treasury={treasury} />
       ))}
+      <a href="/lend" className="text-sm font-bold uppercase tracking-wide text-[#3c8aff]">
+        Open the lend desk
+      </a>
     </div>
   )
 }

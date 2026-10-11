@@ -13,6 +13,7 @@ import {
   encodeMarkDefault,
   encodeRepay,
   encodeRepayDue,
+  encodeWithdrawPrincipal,
   LEND_ADDRESS,
   type OnchainDeal,
 } from '@/lib/gacha/lend-abi'
@@ -53,6 +54,8 @@ export function DealFund({
   nftAddress,
   treasury,
   unfundedClosesAt = null,
+  borrower = 'vault',
+  addressPath = '/api/open/solana',
 }: {
   orderId: string
   dealId: string
@@ -63,11 +66,12 @@ export function DealFund({
   nftAddress: string
   treasury: string
   unfundedClosesAt?: string | null
+  borrower?: 'vault' | 'owner'
+  addressPath?: string
 }) {
   const { wallets, ready } = useWallets()
   const { connectWallet } = useConnectWallet()
   const wallet = wallets.find((item) => item.type === 'ethereum' && item.walletClientType !== 'privy' && item.walletClientType !== 'privy-v2')
-  const isTreasury = treasury !== '' && (wallet?.address ?? '').toLowerCase() === treasury.toLowerCase()
   const principal = BigInt(principalRaw)
   const funderFee = (principal * BigInt(300)) / BigInt(10000)
   const protocolFee = (principal * BigInt(100)) / BigInt(10000)
@@ -163,6 +167,21 @@ export function DealFund({
     }
   }
 
+  async function withdraw() {
+    if (!ready || busy || !deal || deal.held <= BigInt(0)) return
+    setBusy(true)
+    setError('')
+    try {
+      const hash = await send(encodeWithdrawPrincipal(dealId))
+      if (hash) setNote(`${ROBINHOOD_EXPLORER}/tx/${hash}`)
+    } catch (err) {
+      const cancelled = walletErrorCode(err) === 4001
+      setError(cancelled ? 'Withdrawal was cancelled.' : err instanceof Error ? err.message : 'Withdrawal failed')
+    } finally {
+      setBusy(false)
+    }
+  }
+
   async function markDefault() {
     setBusy(true)
     setError('')
@@ -193,7 +212,7 @@ export function DealFund({
         params: [solanaMessage(orderId, address.trim()), from],
       })
       if (typeof signature !== 'string') throw new Error('Wallet did not sign')
-      const res = await fetch('/api/open/solana', {
+      const res = await fetch(addressPath, {
         method: 'POST',
         headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ orderId, address: address.trim(), signature }),
@@ -211,6 +230,10 @@ export function DealFund({
 
   const status = deal ? STATUS[deal.status] ?? 'Unknown' : 'Loading'
   const expired = deal != null && deal.expiresAt > BigInt(0) && Date.now() > Number(deal.expiresAt) * 1000
+  const signer = (wallet?.address ?? '').toLowerCase()
+  const isOwner = deal != null && signer === deal.owner.toLowerCase()
+  const isFunder = deal != null && signer !== '' && signer === deal.funder.toLowerCase()
+  const repays = borrower === 'owner' ? 'the owner' : 'the vault'
 
   return (
     <article className="rounded-3xl border border-white/10 bg-[#14171e] p-5 sm:p-6">
@@ -223,7 +246,7 @@ export function DealFund({
           </div>
           <p className="text-sm text-[#ffd12f]">{rarity}</p>
           <p className="text-sm leading-relaxed text-[#b1b7c3]">
-            Deposit {formatUnits(principal)} USDG. If the vault repays within 7 days, you receive {formatUnits(principal + funderFee)} USDG. Capsule keeps {formatUnits(protocolFee)} USDG on that repayment. If the term ends unpaid, you submit a Solana address and the card is sent to you.
+            Deposit {formatUnits(principal)} USDG. If {repays} repays within 7 days, you receive {formatUnits(principal + funderFee)} USDG. Capsule keeps {formatUnits(protocolFee)} USDG on that repayment. If the term ends unpaid, you submit a Solana address and the card is sent to you.
             {unfundedClosesAt ? ` If nobody funds this card by ${new Date(unfundedClosesAt).toLocaleString()}, the vault sells it back.` : ''}
           </p>
           <p className="break-all font-mono text-[11px] text-[#717886]">NFT {nftAddress}</p>
@@ -232,20 +255,30 @@ export function DealFund({
               {busy ? 'Confirm in wallet' : wallet ? `Fund ${formatUnits(principal)} USDG` : 'Connect wallet'}
             </button>
           )}
-          {deal?.status === 2 && !expired && isTreasury && (
+          {deal?.status === 2 && !expired && isOwner && deal.held > BigInt(0) && (
+            <button type="button" disabled={busy} onClick={() => void withdraw()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3]">
+              {busy ? 'Confirm in wallet' : `Withdraw ${formatUnits(deal.held)} USDG`}
+            </button>
+          )}
+          {deal?.status === 2 && !expired && isOwner && (
             <button type="button" disabled={busy} onClick={() => void repay()} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]">
               {busy ? 'Confirm in wallet' : `Repay ${due == null ? '' : formatUnits(due)} USDG`}
             </button>
           )}
-          {deal?.status === 2 && !expired && !isTreasury && (
-            <p className="text-sm leading-relaxed text-[#b1b7c3]">The vault repays this from its own wallet before the term ends.</p>
+          {deal?.status === 2 && !expired && !isOwner && (
+            <p className="text-sm leading-relaxed text-[#b1b7c3]">{borrower === 'owner' ? 'The owner repays this from their wallet before the term ends.' : 'The vault repays this from its own wallet before the term ends.'}</p>
           )}
           {deal?.status === 2 && expired && (
             <button type="button" disabled={busy} onClick={() => void markDefault()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3]">
               Mark default
             </button>
           )}
-          {deal?.status === 4 && (
+          {deal?.status === 4 && isOwner && deal.held > BigInt(0) && (
+            <button type="button" disabled={busy} onClick={() => void withdraw()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3]">
+              {busy ? 'Confirm in wallet' : `Withdraw ${formatUnits(deal.held)} USDG`}
+            </button>
+          )}
+          {deal?.status === 4 && (!wallet || isFunder) && (
             <form onSubmit={saveAddress} className="flex flex-col gap-2">
               <label htmlFor={`solana-${orderId}`} className="text-sm text-[#eef0f3]">
                 Solana address for the card

@@ -72,6 +72,8 @@ export type ListedDeal = {
   principalRaw: string
   nftAddress: string
   unfundedClosesAt: string | null
+  borrower: 'vault' | 'owner'
+  addressPath: string
 }
 
 const ORDER_TABLE = `
@@ -115,6 +117,26 @@ CREATE TABLE IF NOT EXISTS pull_worker (
   beat_ms text NOT NULL
 )`
 
+const COLLATERAL_TABLE = `
+CREATE TABLE IF NOT EXISTS pull_collateral (
+  id text PRIMARY KEY,
+  mint text NOT NULL,
+  owner text NOT NULL,
+  principal_raw text NOT NULL,
+  status text NOT NULL,
+  deal_id text,
+  solana_address text,
+  nft_send_sig text,
+  error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  updated_at timestamptz NOT NULL DEFAULT now()
+)`
+
+const COLLATERAL_INDEX = `
+CREATE UNIQUE INDEX IF NOT EXISTS pull_collateral_mint_open
+ON pull_collateral (mint)
+WHERE status IN ('REQUESTED', 'LISTED')`
+
 let ready: Promise<void> | null = null
 
 export function ensurePullStore(): Promise<void> {
@@ -122,6 +144,8 @@ export function ensurePullStore(): Promise<void> {
     ready = prisma.$executeRawUnsafe(ORDER_TABLE)
       .then(() => prisma.$executeRawUnsafe(WORKER_TABLE))
       .then(() => prisma.$executeRawUnsafe('ALTER TABLE pull_order ADD COLUMN IF NOT EXISTS listed_at_ms text'))
+      .then(() => prisma.$executeRawUnsafe(COLLATERAL_TABLE))
+      .then(() => prisma.$executeRawUnsafe(COLLATERAL_INDEX))
       .then(() => undefined)
       .catch((err: unknown) => {
       ready = null
@@ -300,6 +324,8 @@ function listedDeal(row: PullRow): ListedDeal | null {
     principalRaw: row.buyback_raw,
     nftAddress: row.nft_address,
     unfundedClosesAt,
+    borrower: 'vault',
+    addressPath: '/api/open/solana',
   }
 }
 
@@ -464,6 +490,139 @@ export async function workerFresh(nowMs: number, windowMs = 120_000): Promise<bo
   const beat = rows[0]?.beat_ms
   if (!beat || !/^\d+$/.test(beat)) return false
   return nowMs - Number(beat) <= windowMs
+}
+
+export type CollateralRow = {
+  id: string
+  mint: string
+  owner: string
+  principal_raw: string
+  status: string
+  deal_id: string | null
+  solana_address: string | null
+  nft_send_sig: string | null
+  error: string | null
+}
+
+function collateralFrom(value: unknown): CollateralRow | null {
+  if (!value || typeof value !== 'object') return null
+  const raw = value as Record<string, unknown>
+  const id = text(raw.id)
+  const mint = text(raw.mint)
+  const owner = text(raw.owner)
+  const principal = text(raw.principal_raw)
+  const status = text(raw.status)
+  if (!id || !mint || !owner || !principal || !status) return null
+  return {
+    id,
+    mint,
+    owner,
+    principal_raw: principal,
+    status,
+    deal_id: text(raw.deal_id),
+    solana_address: text(raw.solana_address),
+    nft_send_sig: text(raw.nft_send_sig),
+    error: text(raw.error),
+  }
+}
+
+export async function insertCollateral(input: { mint: string; owner: string; principalRaw: bigint }): Promise<CollateralRow> {
+  await ensurePullStore()
+  const id = `col_${randomBytes(8).toString('hex')}`
+  const owner = input.owner.toLowerCase()
+  const principal = input.principalRaw.toString()
+  try {
+    await prisma.$executeRaw`
+      INSERT INTO pull_collateral (id, mint, owner, principal_raw, status)
+      VALUES (${id}, ${input.mint}, ${owner}, ${principal}, 'REQUESTED')
+    `
+  } catch {
+    const existing = await prisma.$queryRaw<unknown[]>`
+      SELECT * FROM pull_collateral
+      WHERE mint = ${input.mint} AND status IN ('REQUESTED', 'LISTED')
+      LIMIT 1
+    `
+    const row = collateralFrom(existing[0])
+    if (row) return row
+    throw new Error('Collateral request was not stored')
+  }
+  const rows = await prisma.$queryRaw<unknown[]>`SELECT * FROM pull_collateral WHERE id = ${id} LIMIT 1`
+  const row = collateralFrom(rows[0])
+  if (!row) throw new Error('Collateral request was not stored')
+  return row
+}
+
+export async function listCollateral(status: string): Promise<CollateralRow[]> {
+  await ensurePullStore()
+  const rows = await prisma.$queryRaw<unknown[]>`
+    SELECT * FROM pull_collateral WHERE status = ${status} ORDER BY created_at ASC
+  `
+  return rows.flatMap((item) => {
+    const row = collateralFrom(item)
+    return row ? [row] : []
+  })
+}
+
+export async function saveCollateral(id: string, patch: Partial<Pick<CollateralRow, 'status' | 'deal_id' | 'solana_address' | 'nft_send_sig' | 'error'>>): Promise<void> {
+  await ensurePullStore()
+  const current = await prisma.$queryRaw<unknown[]>`SELECT * FROM pull_collateral WHERE id = ${id} LIMIT 1`
+  const row = collateralFrom(current[0])
+  if (!row) return
+  const next = { ...row, ...patch }
+  await prisma.$executeRaw`
+    UPDATE pull_collateral SET
+      status = ${next.status},
+      deal_id = ${next.deal_id},
+      solana_address = ${next.solana_address},
+      nft_send_sig = ${next.nft_send_sig},
+      error = ${next.error},
+      updated_at = now()
+    WHERE id = ${id}
+  `
+}
+
+export async function setCollateralSolana(id: string, address: string): Promise<CollateralRow | null> {
+  await ensurePullStore()
+  await prisma.$executeRaw`
+    UPDATE pull_collateral
+    SET solana_address = ${address}, updated_at = now()
+    WHERE id = ${id} AND status = 'LISTED' AND solana_address IS NULL
+  `
+  const rows = await prisma.$queryRaw<unknown[]>`SELECT * FROM pull_collateral WHERE id = ${id} LIMIT 1`
+  return collateralFrom(rows[0])
+}
+
+export async function findCollateral(id: string): Promise<CollateralRow | null> {
+  await ensurePullStore()
+  const rows = await prisma.$queryRaw<unknown[]>`SELECT * FROM pull_collateral WHERE id = ${id} LIMIT 1`
+  return collateralFrom(rows[0])
+}
+
+export async function listPledgedDeals(): Promise<ListedDeal[]> {
+  const rows = await listCollateral('LISTED')
+  return rows.flatMap((row) => {
+    if (!row.deal_id || !/^0x[a-fA-F0-9]{64}$/.test(row.deal_id)) return []
+    return [{
+      orderId: row.id,
+      dealId: row.deal_id,
+      name: `${row.mint.slice(0, 4)}…${row.mint.slice(-4)}`,
+      imageUrl: null,
+      rarity: 'Unverified mint',
+      principalRaw: row.principal_raw,
+      nftAddress: row.mint,
+      unfundedClosesAt: null,
+      borrower: 'owner' as const,
+      addressPath: '/api/lend/solana',
+    }]
+  })
+}
+
+export async function mintAlreadyOpened(mint: string): Promise<boolean> {
+  await ensurePullStore()
+  const rows = await prisma.$queryRaw<unknown[]>`
+    SELECT id FROM pull_order WHERE nft_address = ${mint} LIMIT 1
+  `
+  return rows.length > 0
 }
 
 export type { Choice, ChoiceSource, DrawResult }

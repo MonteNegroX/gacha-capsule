@@ -8,10 +8,10 @@ import { AuthButton } from '@/components/auth-button'
 
 const navLinks = [
   { label: 'Packs', href: '/#packs', external: false },
-  { label: 'Borrow', href: '/#borrow', external: false },
+  { label: 'Lend', href: '/lend', external: false },
+  { label: 'Statistics', href: '/statistics', external: false },
+  { label: 'Profile', href: '/profile', external: false },
   { label: 'Quests', href: '/#quests', external: false },
-  { label: 'Leaderboard', href: '/#leaderboard', external: false },
-  { label: 'Community', href: 'https://x.com/capsulepull', external: true },
 ]
 
 export function SiteHeader() {
@@ -20,7 +20,7 @@ export function SiteHeader() {
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0b0d]/70 backdrop-blur-lg">
       <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
-        <a href="#top" className="flex items-center gap-2.5">
+        <a href="/" className="flex items-center gap-2.5">
           <Image
             src="/images/logo.jpg"
             alt="Capsule Logo"
