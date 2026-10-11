@@ -55,7 +55,6 @@ export function PackOpen({
   const [coin, setCoin] = useState<'idle' | 'spin' | 'win' | 'loss'>('idle')
   const [coinHold, setCoinHold] = useState(false)
   const coinTimer = useRef<number | null>(null)
-  const [preview, setPreview] = useState(false)
   const reveal = useReveal(order?.cardName ? order.id : null)
   const storageKey = `capsule-open:${code}`
 
@@ -108,10 +107,6 @@ export function PackOpen({
       window.clearInterval(timer)
     }
   }, [order])
-
-  useEffect(() => {
-    if (new URLSearchParams(window.location.search).get('preview') === 'capsule') setPreview(true)
-  }, [])
 
   async function pay(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -194,7 +189,21 @@ export function PackOpen({
   }
 
   if ((opening || order) && !order?.cardName) {
-    return <Waiting text={order ? statusCopy(order) : 'Confirming the payment.'} error={error} />
+    return (
+      <div className={styles.stage} aria-live="polite">
+        <p className="text-center text-sm text-[#b1b7c3]">{order ? statusCopy(order) : 'Confirming the payment.'}</p>
+        <div className={styles.lines}>
+          {REVEAL.map((line) => (
+            <div key={line.key} className={`${styles.line} ${styles.off}`}>
+              <span className={styles.label}>{line.label}</span>
+              <span className={styles.value}>—</span>
+            </div>
+          ))}
+        </div>
+        <div className={styles.slab} />
+        {error && <p className="text-sm text-[#fc401f]">{error}</p>}
+      </div>
+    )
   }
 
   if (order?.cardName) {
@@ -250,8 +259,6 @@ export function PackOpen({
     )
   }
 
-  if (!order && preview) return <Waiting text="The pack is opening." error="" />
-
   return (
     <form onSubmit={pay} className="flex flex-col gap-3">
       <p className="text-sm leading-relaxed text-[#b1b7c3]">
@@ -283,24 +290,6 @@ function reducedMotion(): boolean {
   return window.matchMedia('(prefers-reduced-motion: reduce)').matches
 }
 
-function Waiting({ text, error }: { text: string; error: string }) {
-  return (
-    <div className={styles.stage} aria-live="polite">
-      <p className="text-center text-sm text-[#b1b7c3]">{text}</p>
-      <div className={`${styles.lines} ${styles.scan}`}>
-        {REVEAL.map((line) => (
-          <div key={line.key} className={`${styles.line} ${styles.off}`}>
-            <span className={styles.label}>{line.label}</span>
-            <span className={styles.value}>—</span>
-          </div>
-        ))}
-      </div>
-      <Capsule />
-      {error && <p className="text-sm text-[#fc401f]">{error}</p>}
-    </div>
-  )
-}
-
 function useReveal(orderId: string | null): number {
   const [step, setStep] = useState(0)
   useEffect(() => {
@@ -321,18 +310,6 @@ function useReveal(orderId: string | null): number {
     }
   }, [orderId])
   return step
-}
-
-function Capsule() {
-  return (
-    <div className={styles.shell} aria-hidden="true">
-      <div className={styles.ball}>
-        <div className={`${styles.half} ${styles.capTop}`} />
-        <div className={`${styles.half} ${styles.capBottom}`} />
-        <span className={styles.seam} />
-      </div>
-    </div>
-  )
 }
 
 function Coin({ face }: { face: 'spin' | 'win' | 'loss' }) {

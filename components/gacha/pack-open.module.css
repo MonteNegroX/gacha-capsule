@@ -32,85 +32,18 @@
   animation: card-in 0.55s ease both;
 }
 
-.shell {
-  position: relative;
-  display: grid;
-  place-items: center;
-  width: 9.5rem;
-  height: 18rem;
-  margin-inline: auto;
-}
-
-.ball {
-  position: relative;
-  z-index: 1;
-  width: 8.25rem;
-  height: 10.5rem;
-  filter: drop-shadow(0 14px 18px rgb(0 0 0 / 0.45));
-}
-
-.half {
-  position: absolute;
-  left: 0;
-  right: 0;
-  height: 50%;
-}
-
-.capTop {
-  top: 0;
-  border: 2px solid rgb(255 209 47 / 0.8);
-  border-bottom: 0;
-  border-radius: 999px 999px 0.35rem 0.35rem;
-  background:
-    radial-gradient(circle at 32% 30%, rgb(255 255 255 / 0.7), transparent 26%),
-    linear-gradient(180deg, #ffd6ee, #ff5ea8 58%, #c43b86);
-}
-
-.capBottom {
-  bottom: 0;
-  border: 2px solid rgb(255 209 47 / 0.8);
-  border-top: 0;
-  border-radius: 0.35rem 0.35rem 999px 999px;
-  background: linear-gradient(180deg, #8eb8ff, #3c8aff 46%, #17367a);
-}
-
-.seam {
-  position: absolute;
-  z-index: 2;
-  top: 50%;
-  right: 7%;
-  left: 7%;
-  height: 0.28rem;
-  translate: 0 -50%;
-  border-radius: 999px;
-  background: #ffd12f;
-  box-shadow: 0 0 10px rgb(255 209 47 / 0.85);
-}
-
 .lines {
   display: flex;
   flex-direction: column;
 }
 
 .line {
-  position: relative;
   display: flex;
   justify-content: space-between;
   gap: 1rem;
   border-bottom: 1px solid rgb(255 255 255 / 0.08);
-  padding: 0.5rem 0 0.5rem 0.75rem;
+  padding: 0.5rem 0;
   font-size: 0.875rem;
-}
-
-.scan .line::before {
-  content: "";
-  position: absolute;
-  top: 0.4rem;
-  bottom: 0.4rem;
-  left: 0;
-  width: 2px;
-  border-radius: 999px;
-  background: transparent;
 }
 
 .label {
@@ -187,33 +120,6 @@
     animation: slab-scan 1.5s ease-in-out infinite;
   }
 
-  .ball {
-    animation: rock 2.6s ease-in-out infinite;
-  }
-
-  .scan .line::before {
-    animation: marker-bar 2.8s linear infinite;
-  }
-
-  .scan .label {
-    animation: marker-label 2.8s linear infinite;
-  }
-
-  .scan .line:nth-child(2)::before,
-  .scan .line:nth-child(2) .label {
-    animation-delay: 0.7s;
-  }
-
-  .scan .line:nth-child(3)::before,
-  .scan .line:nth-child(3) .label {
-    animation-delay: 1.4s;
-  }
-
-  .scan .line:nth-child(4)::before,
-  .scan .line:nth-child(4) .label {
-    animation-delay: 2.1s;
-  }
-
   .spin {
     animation: coin-spin 0.42s linear infinite;
   }
@@ -224,43 +130,6 @@
 
   .landLoss {
     animation: coin-land-loss 1.15s cubic-bezier(0.16, 0.72, 0.2, 1) forwards;
-  }
-}
-
-@keyframes rock {
-  0%,
-  100% {
-    rotate: -8deg;
-  }
-
-  50% {
-    rotate: 8deg;
-  }
-}
-
-@keyframes marker-bar {
-  0%,
-  18% {
-    background: #ffd12f;
-    box-shadow: 0 0 8px #ffd12f;
-  }
-
-  28%,
-  100% {
-    background: transparent;
-    box-shadow: none;
-  }
-}
-
-@keyframes marker-label {
-  0%,
-  18% {
-    color: #ffd12f;
-  }
-
-  28%,
-  100% {
-    color: #717886;
   }
 }
 
