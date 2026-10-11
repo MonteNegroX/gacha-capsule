@@ -25,8 +25,8 @@ import {
   writeDomain,
   type PullRow,
 } from '@/lib/gacha/pull-store'
-import { createLendDeal, dealIdFor, sendUsdg, treasuryAddressMatches, withdrawLendPrincipal } from '@/lib/gacha/treasury-tx'
-import { parseUnits } from '@/lib/gacha/units'
+import { createLendDeal, dealIdFor, sendUsdg, treasuryAddressMatches, treasuryUsdgBalance, withdrawLendPrincipal } from '@/lib/gacha/treasury-tx'
+import { parseUnits, refundToRaw } from '@/lib/gacha/units'
 import { treasuryAddress } from '@/lib/gacha/verify-payment'
 import { vaultCanOpen } from '@/lib/gacha/vault-stock'
 
@@ -136,8 +136,7 @@ async function sell(row: PullRow): Promise<void> {
   try {
     const sold = await botJson('src/sell-held.ts', row.nft_address)
     const signature = typeof sold.signature === 'string' ? sold.signature : ''
-    const refundUsd = typeof sold.refundAmount === 'number' ? sold.refundAmount : Number(sold.refundAmount)
-    const refund = Number.isFinite(refundUsd) && refundUsd >= 0 ? parseUnits(refundUsd) ?? BigInt(0) : null
+    const refund = refundToRaw(sold.refundAmount)
     if (!signature || refund == null) throw new Error('Buyback did not return a refund')
     const recorded = recordBuyback(toDomain(row), signature, refund === BigInt(0) ? BigInt(0) : refund)
     if (!recorded.ok) return
@@ -165,6 +164,11 @@ async function payRow(row: PullRow, amount: bigint): Promise<void> {
     if (amount <= BigInt(0)) {
       const paid = markPaid({ ...toDomain(row), payoutHash: 'zero' }, 'zero')
       if (paid.ok) await save(row.status, paid.order)
+      return
+    }
+    const balance = await treasuryUsdgBalance()
+    if (balance < amount) {
+      console.log(`payout waiting ${row.id}`)
       return
     }
     const hash = await sendUsdg(row.payer, amount)

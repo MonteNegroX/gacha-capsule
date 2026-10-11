@@ -15,3 +15,11 @@ export function parseUnits(amount: number): bigint | null {
   if (whole.length > 12) return null
   return BigInt(`${whole}${frac.padEnd(6, '0')}`)
 }
+
+/** Collector Crypt returns a buyback refund as dollars or as 6-decimal base units. */
+export function refundToRaw(value: unknown): bigint | null {
+  const amount = typeof value === 'number' ? value : typeof value === 'string' && value.trim() !== '' ? Number(value) : Number.NaN
+  if (!Number.isFinite(amount) || amount < 0) return null
+  if (Number.isInteger(amount) && amount >= 1_000_000) return BigInt(amount)
+  return parseUnits(amount)
+}

@@ -34,6 +34,12 @@ export async function treasuryAddressMatches(expected: string): Promise<boolean>
   return wallet().address.toLowerCase() === expected.toLowerCase()
 }
 
+export async function treasuryUsdgBalance(): Promise<bigint> {
+  const signer = wallet()
+  const token = new Contract(ROBINHOOD_USDG, ['function balanceOf(address) view returns (uint256)'], signer)
+  return BigInt(await token.balanceOf(signer.address))
+}
+
 export async function sendUsdg(to: string, amount: bigint): Promise<string> {
   if (amount <= BigInt(0)) throw new Error('Nothing to send')
   const signer = wallet()
