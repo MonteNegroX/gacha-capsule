@@ -3,6 +3,7 @@ import { Prisma } from '@prisma/client'
 import { WIN_UNFUNDED_MS, type CapsuleOrder, type Choice, type ChoiceSource, type DrawResult, type OrderStatus } from '@/lib/capsule/order'
 import { prisma } from '@/lib/prisma'
 import { doubleOffered } from '@/lib/gacha/pack-access'
+import { isRipCarsPack } from '@/lib/gacha/ripcars-pack'
 import { formatUnits } from '@/lib/gacha/units'
 
 export type PullRow = {
@@ -265,7 +266,7 @@ export function publicPull(row: PullRow): PublicPull {
     imageUrl: row.image_url?.startsWith('https://') ? row.image_url : null,
     insuredUsd: row.insured_usd,
     buybackUsd: quote != null ? formatUnits(quote) : null,
-    doubleOffered: doubleOffered(row.rarity),
+    doubleOffered: !isRipCarsPack(row.machine_code) && doubleOffered(row.rarity),
     choice: row.choice,
     draw: row.draw,
     payoutUsd: payout != null ? formatUnits(payout) : null,
@@ -474,19 +475,19 @@ export async function setSolanaAddress(id: string, address: string): Promise<Pul
   return findPullById(id)
 }
 
-export async function beatWorker(nowMs: number): Promise<void> {
+export async function beatWorker(nowMs: number, id: 'robinhood' | 'ripcars' = 'robinhood'): Promise<void> {
   await ensurePullStore()
   const beat = String(nowMs)
   await prisma.$executeRaw`
-    INSERT INTO pull_worker (id, beat_ms) VALUES ('robinhood', ${beat})
+    INSERT INTO pull_worker (id, beat_ms) VALUES (${id}, ${beat})
     ON CONFLICT (id) DO UPDATE SET beat_ms = ${beat}
   `
 }
 
-export async function workerFresh(nowMs: number, windowMs = 120_000): Promise<boolean> {
+export async function workerFresh(nowMs: number, windowMs = 120_000, id: 'robinhood' | 'ripcars' = 'robinhood'): Promise<boolean> {
   await ensurePullStore()
   const rows = await prisma.$queryRaw<Array<{ beat_ms: string }>>`
-    SELECT beat_ms FROM pull_worker WHERE id = 'robinhood' LIMIT 1
+    SELECT beat_ms FROM pull_worker WHERE id = ${id} LIMIT 1
   `
   const beat = rows[0]?.beat_ms
   if (!beat || !/^\d+$/.test(beat)) return false

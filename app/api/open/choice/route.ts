@@ -5,6 +5,7 @@ import { applyDouble } from '@/lib/capsule/choice'
 import { chooseBuyback } from '@/lib/capsule/order'
 import { choiceMessage } from '@/lib/gacha/choice-message'
 import { doubleOffered } from '@/lib/gacha/pack-access'
+import { isRipCarsPack } from '@/lib/gacha/ripcars-pack'
 import { findPullById, publicPull, toDomain, writeDomain } from '@/lib/gacha/pull-store'
 
 export const dynamic = 'force-dynamic'
@@ -36,6 +37,9 @@ export async function POST(request: Request) {
   }
   if (signer !== row.payer.toLowerCase()) {
     return NextResponse.json({ error: 'Sign the choice from the wallet that paid' }, { status: 401 })
+  }
+  if (choice === 'DOUBLE' && isRipCarsPack(row.machine_code)) {
+    return NextResponse.json({ error: 'Double is not offered on this pack.' }, { status: 400 })
   }
   if (choice === 'DOUBLE' && !doubleOffered(row.rarity)) {
     return NextResponse.json({ error: 'Double is only offered on a Common card' }, { status: 400 })

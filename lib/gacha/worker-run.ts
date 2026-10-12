@@ -2,6 +2,7 @@ import { spawn } from 'node:child_process'
 import {
   attachWinLend,
   beginOpen,
+  chooseBuyback,
   expireChoice,
   failOpen,
   listLend,
@@ -20,6 +21,8 @@ import {
 import { markPaid, markRefunded, failPayout } from '@/lib/capsule/order'
 import { HELD_JOLTEON } from '@/lib/gacha/held-card'
 import { quoteBuyback, openPackLive } from '@/lib/gacha/live-open'
+import { openGaragePack, RipCarsOpenError } from '@/lib/gacha/ripcars-open'
+import { isRipCarsPack, RIPCARS_WORKER_ID, workerOwnsPack, type PackWorker } from '@/lib/gacha/ripcars-pack'
 import { readDeal } from '@/lib/gacha/lend-read'
 import {
   beatWorker,
@@ -87,6 +90,53 @@ async function save(previous: string, order: CapsuleOrder, extra: Partial<PullRo
   return writeDomain(previous, order, extra)
 }
 
+async function openGarage(claimed: PullRow): Promise<void> {
+  let result
+  try {
+    result = await openGaragePack()
+  } catch (err) {
+    if (err instanceof RipCarsOpenError && err.spent && err.code !== 'PAYMENT_REFUNDED') {
+      const review = markManualReview(toDomain(claimed), err.message)
+      if (review.ok) await save('OPENING', review.order)
+      console.log(`garage review ${claimed.id}`)
+      return
+    }
+    throw err
+  }
+  if (!result) return
+  const refund = refundToRaw(result.buybackUsd)
+  if (!result.mint || result.mint === HELD_JOLTEON || !result.name || refund == null || refund <= BigInt(0) || !result.buybackSignature) {
+    const review = markManualReview(toDomain(claimed), 'The open did not return a sold car')
+    if (review.ok) await save('OPENING', review.order)
+    return
+  }
+  const recorded = recordOpen(toDomain(claimed), {
+    nftAddress: result.mint,
+    cardName: result.name,
+    rarity: result.rarity,
+    buybackQuote: refund,
+    openedAtMs: Date.now(),
+  })
+  if (!recorded.ok) return
+  const chosen = chooseBuyback(recorded.order, Date.now())
+  if (!chosen.ok) {
+    const review = markManualReview(recorded.order, 'The Garage Pack could not be sold')
+    if (review.ok) await save('OPENING', review.order)
+    return
+  }
+  const sold = recordBuyback(chosen.order, result.buybackSignature, refund)
+  if (!sold.ok) {
+    const review = markManualReview(recorded.order, 'The Garage Pack could not be sold')
+    if (review.ok) await save('OPENING', review.order)
+    return
+  }
+  await save('OPENING', { ...sold.order, memo: result.paySignature }, {
+    image_url: result.imageUrl,
+    insured_usd: result.fmvUsd == null ? null : String(result.fmvUsd),
+  })
+  console.log(`opened garage ${claimed.id}`)
+}
+
 async function openConfirmed(row: PullRow): Promise<void> {
   const stocked = await vaultCanOpen(BigInt(row.price_raw)).catch(() => false)
   if (!stocked) {
@@ -99,6 +149,10 @@ async function openConfirmed(row: PullRow): Promise<void> {
   const claimed = await save(row.status, began.order)
   if (!claimed || claimed.status !== 'OPENING') return
   try {
+    if (isRipCarsPack(row.machine_code)) {
+      await openGarage(claimed)
+      return
+    }
     const result = await openPackLive(row.machine_code, false, false, 150_000)
     if (!result.nftAddress || result.nftAddress === HELD_JOLTEON) {
       const review = markManualReview(toDomain(claimed), 'The open did not return a new card')
@@ -136,6 +190,11 @@ async function openConfirmed(row: PullRow): Promise<void> {
 }
 
 async function sell(row: PullRow): Promise<void> {
+  if (isRipCarsPack(row.machine_code)) {
+    const review = markManualReview(toDomain(row), 'This car is sold on Solana by the opener')
+    if (review.ok) await save(row.status, review.order)
+    return
+  }
   if (!row.nft_address || row.nft_address === HELD_JOLTEON) {
     const review = markManualReview(toDomain(row), 'This card is not for sale')
     if (review.ok) await save(row.status, review.order)
@@ -336,28 +395,35 @@ async function maintainDeal(row: PullRow): Promise<void> {
   }
 }
 
-async function tick(): Promise<void> {
-  const confirmed = await listPulls('PAYMENT_CONFIRMED')
+async function owned(status: string, scope: PackWorker): Promise<PullRow[]> {
+  const rows = await listPulls(status)
+  return rows.filter((row) => workerOwnsPack(row.machine_code, scope))
+}
+
+async function tick(scope: PackWorker): Promise<void> {
+  const confirmed = await owned('PAYMENT_CONFIRMED', scope)
   if (confirmed[0]) {
     await openConfirmed(confirmed[0])
     return
   }
-  for (const row of await listPulls('AWAITING_CHOICE')) {
-    const expired = expireChoice(toDomain(row), Date.now())
-    if (expired.ok && expired.applied) await save(row.status, expired.order)
+  if (scope === 'capsule') {
+    for (const row of await owned('AWAITING_CHOICE', scope)) {
+      const expired = expireChoice(toDomain(row), Date.now())
+      if (expired.ok && expired.applied) await save(row.status, expired.order)
+    }
+    for (const row of await owned('BUYBACK_CONFIRMED', scope)) await sell(row)
+    for (const row of await owned('DOUBLE_WON', scope)) {
+      const queued = queueDoublePayout(toDomain(row))
+      if (queued.ok && queued.applied) await save(row.status, queued.order)
+    }
+    for (const row of await owned('DOUBLE_LOST', scope)) await listDeal(row)
+    for (const row of await owned('LEND_QUEUED', scope)) await listDeal(row)
   }
-  for (const row of await listPulls('BUYBACK_CONFIRMED')) await sell(row)
-  for (const row of await listPulls('DOUBLE_WON')) {
-    const queued = queueDoublePayout(toDomain(row))
-    if (queued.ok && queued.applied) await save(row.status, queued.order)
-  }
-  for (const row of await listPulls('DOUBLE_LOST')) await listDeal(row)
-  for (const row of await listPulls('LEND_QUEUED')) await listDeal(row)
-  for (const row of await listPulls('PAYOUT_FAILED')) {
+  for (const row of await owned('PAYOUT_FAILED', scope)) {
     const again = retryPayout(toDomain(row))
     if (again.ok && again.applied) await save(row.status, again.order)
   }
-  for (const row of await listPulls('PAYOUT_PENDING')) {
+  for (const row of await owned('PAYOUT_PENDING', scope)) {
     const domain = toDomain(row)
     const amount = domain.choice === 'DOUBLE' && domain.draw === 'WIN' && domain.buybackQuote
       ? domain.buybackQuote * BigInt(2)
@@ -365,13 +431,15 @@ async function tick(): Promise<void> {
     if (amount == null) continue
     await payRow(row, amount)
   }
-  for (const row of await listPulls('OPENING_FAILED')) {
+  for (const row of await owned('OPENING_FAILED', scope)) {
     const refund = requestRefund(toDomain(row))
     if (refund.ok && refund.applied) await save(row.status, refund.order)
   }
-  for (const row of await listPulls('REFUND_PENDING')) await refundRow(row)
-  for (const row of await listPulls('LEND_LISTED')) await maintainDeal(row)
+  for (const row of await owned('REFUND_PENDING', scope)) await refundRow(row)
+  if (scope !== 'capsule') return
+  for (const row of await owned('LEND_LISTED', scope)) await maintainDeal(row)
   for (const row of await listUnsoldWins()) {
+    if (!workerOwnsPack(row.machine_code, scope)) continue
     if (row.lend_deal_id) await expireUnclaimedWin(row)
     else await listWin(row)
   }
@@ -427,19 +495,28 @@ async function maintainCollateral(row: CollateralRow): Promise<void> {
   }
 }
 
-export async function runWorker(): Promise<void> {
-  for (const row of await listPulls('OPENING')) {
+async function runScoped(scope: PackWorker): Promise<void> {
+  for (const row of await owned('OPENING', scope)) {
     const review = markManualReview(toDomain(row), 'Open was interrupted before the card was saved')
     if (review.ok) await save(row.status, review.order)
   }
-  console.log('capsule worker running')
+  console.log(scope === 'ripcars' ? 'ripcars worker running' : 'capsule worker running')
   for (;;) {
     try {
-      await beatWorker(Date.now())
-      await tick()
+      if (scope === 'ripcars') await beatWorker(Date.now(), RIPCARS_WORKER_ID)
+      else await beatWorker(Date.now())
+      await tick(scope)
     } catch (err) {
       console.log(note(err))
     }
     await sleep(8000)
   }
+}
+
+export function runWorker(): Promise<void> {
+  return runScoped('capsule')
+}
+
+export function runRipCarsWorker(): Promise<void> {
+  return runScoped('ripcars')
 }

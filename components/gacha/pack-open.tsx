@@ -30,6 +30,10 @@ const WAITING = new Set([
   'LEND_QUEUED',
 ])
 
+function canOpenAnother(status: string): boolean {
+  return status !== 'AWAITING_CHOICE' && status !== 'PAYMENT_CONFIRMED' && status !== 'OPENING'
+}
+
 function walletErrorCode(err: unknown): number | null {
   if (typeof err === 'object' && err !== null && 'code' in err && typeof err.code === 'number') return err.code
   return null
@@ -63,6 +67,7 @@ export function PackOpen({
   const coinTimer = useRef<number | null>(null)
   const preview = useRevealPreview()
   const storageKey = `capsule-open:${code}`
+  const ripcars = code === 'garage_20'
 
   useEffect(() => {
     let stop = false
@@ -113,6 +118,16 @@ export function PackOpen({
       window.clearInterval(timer)
     }
   }, [order])
+
+  function openAnother() {
+    if (coinTimer.current) window.clearTimeout(coinTimer.current)
+    window.sessionStorage.removeItem(storageKey)
+    setOrder(null)
+    setOpening(false)
+    setCoin('idle')
+    setCoinHold(false)
+    setError('')
+  }
 
   async function pay(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -201,6 +216,11 @@ export function PackOpen({
       <div className={styles.stage} aria-live="polite">
         <p className="text-center text-sm text-[#b1b7c3]">{order ? statusCopy(order) : 'Confirming the payment.'}</p>
         <div className={styles.slab} />
+        {order && canOpenAnother(order.status) && (
+          <button type="button" onClick={openAnother} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
+            Open another pack
+          </button>
+        )}
         {error && <p role="alert" className="text-sm text-[#fc401f]">{error}</p>}
       </div>
     )
@@ -228,6 +248,11 @@ export function PackOpen({
             {!coinHold && order.status !== 'AWAITING_CHOICE' && (
               <p className="text-sm leading-relaxed text-[#b1b7c3]">{statusCopy(order)}</p>
             )}
+            {!coinHold && canOpenAnother(order.status) && (
+              <button type="button" onClick={openAnother} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
+                Open another pack
+              </button>
+            )}
             {order.payoutHash && order.payoutHash !== 'zero' && (
               <a href={txLink(order.payoutHash)} className="text-xs text-[#3c8aff] underline">Payout transaction</a>
             )}
@@ -240,9 +265,13 @@ export function PackOpen({
 
   const hyper = network === 'hyperliquid'
   const tokenName = hyper ? 'USDC' : 'USDG'
-  const payHelp = hyper
-    ? `Pay ${price} USDC on Hyperliquid. Keep a little HYPE for gas. Buyback is still paid in USDG on Robinhood. The pack opens in the vault, then you choose buyback. Double appears only if the card is Common.`
-    : `Pay ${price} USDG on Robinhood. The pack opens in the vault, then you choose buyback. Double appears only if the card is Common.`
+  const payHelp = ripcars
+    ? hyper
+      ? `Pay ${price} USDC on Hyperliquid. Keep a little HYPE for gas. The pack opens on Solana and the card is sold there. Buyback is paid in USDG on Robinhood.`
+      : `Pay ${price} USDG on Robinhood. The pack opens on Solana, the card is sold there, and the buyback is paid back in USDG.`
+    : hyper
+      ? `Pay ${price} USDC on Hyperliquid. Keep a little HYPE for gas. Buyback is still paid in USDG on Robinhood. The pack opens in the vault, then you choose buyback. Double appears only if the card is Common.`
+      : `Pay ${price} USDG on Robinhood. The pack opens in the vault, then you choose buyback. Double appears only if the card is Common.`
 
   return (
     <form onSubmit={pay} className="flex flex-col gap-3">

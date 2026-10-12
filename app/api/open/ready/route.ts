@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { findMachine, loadPublicMachines } from '@/lib/gacha/catalog'
 import { packOpenable } from '@/lib/gacha/pack-access'
 import { workerFresh } from '@/lib/gacha/pull-store'
+import { findListedMachine, openerWorkerId } from '@/lib/gacha/ripcars-pack'
 import { parseUnits } from '@/lib/gacha/units'
 import { vaultCanOpen } from '@/lib/gacha/vault-stock'
 import { treasuryAddress } from '@/lib/gacha/verify-payment'
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ ready: false, reason: 'Unknown pack' }, { status: 400 })
   }
   try {
-    const machine = findMachine(await loadPublicMachines(), code)
+    const machine = await findListedMachine(code)
     if (!machine) return NextResponse.json({ ready: false, reason: 'That machine is not available' }, { status: 404 })
     if (!packOpenable(machine.price)) {
       return NextResponse.json({ ready: false, reason: 'Coming soon' })
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
     const priceRaw = parseUnits(machine.price)
     const stocked = priceRaw != null && await vaultCanOpen(priceRaw).catch(() => false)
     if (!stocked) return NextResponse.json({ ready: false, reason: 'This machine is restocking.' })
-    if (!(await workerFresh(Date.now()).catch(() => false))) {
+    if (!(await workerFresh(Date.now(), 120_000, openerWorkerId(code)).catch(() => false))) {
       return NextResponse.json({ ready: false, reason: 'Opening is offline.' })
     }
     return NextResponse.json({ ready: true, priceUsd: formatPrice(machine.price) })

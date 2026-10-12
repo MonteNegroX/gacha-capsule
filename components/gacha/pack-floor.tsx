@@ -27,6 +27,16 @@ function percent(value: number): string {
   return `${Number.isInteger(pct) ? pct.toFixed(0) : pct.toFixed(1)}%`
 }
 
+function packArt(url: string | null): url is string {
+  if (!url?.startsWith('https://')) return false
+  return url.includes('blob.vercel-storage.com') || url.startsWith('https://assets.ripcars.io/')
+}
+
+// Rip Cars ships a 16:9 studio frame. Cover crops the side bars so the machine fills the square.
+function fillsSquare(url: string | null): boolean {
+  return !!url?.startsWith('https://assets.ripcars.io/')
+}
+
 export function PackFloor({
   machines,
   unavailable,
@@ -74,16 +84,19 @@ export function PackFloor({
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Machines</p>
         <h2 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">Packs</h2>
         <p className="max-w-2xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
-          Packs above $25 are coming soon. The $25 pack opens in USDG on Robinhood or USDC on Hyperliquid.
+          The $20 Garage Pack and the $25 pack take USDG on Robinhood or USDC on Hyperliquid. Packs above $25 are coming soon.
         </p>
       </div>
 
-      {unavailable || machines.length === 0 ? (
+      {machines.length === 0 ? (
         <p className="rounded-2xl border border-white/10 bg-[#14171e] px-4 py-6 text-sm text-[#b1b7c3]">
           Pack list is unavailable right now.
         </p>
       ) : (
         <>
+          {unavailable && (
+            <p className="text-sm text-[#b1b7c3]">The other packs are unavailable right now.</p>
+          )}
           <div className="flex gap-2 overflow-x-auto pb-1" role="tablist" aria-label="Pack categories">
             {categories.map((name) => {
               const active = name === category
@@ -121,16 +134,17 @@ export function PackFloor({
                     active ? 'border-[#3c8aff]' : 'border-white/10 hover:border-white/25'
                   }`}
                 >
-                  <span className="relative block">
-                    {machine.imageUrl?.includes('blob.vercel-storage.com') ? (
+                  <span className={`relative block overflow-hidden ${fillsSquare(machine.imageUrl) ? 'rounded-2xl bg-black' : ''}`}>
+                    {fillsSquare(machine.imageUrl) && <span className="block aspect-square" aria-hidden="true" />}
+                    {packArt(machine.imageUrl) ? (
                       <img
                         src={machine.imageUrl}
                         alt={machine.name}
-                        width={1080}
+                        width={fillsSquare(machine.imageUrl) ? 1920 : 1080}
                         height={1080}
                         loading="lazy"
                         decoding="async"
-                        className="aspect-square w-full object-contain"
+                        className={fillsSquare(machine.imageUrl) ? 'absolute inset-0 size-full object-cover' : 'aspect-square w-full object-contain'}
                       />
                     ) : (
                       <span className="block aspect-square" />
@@ -151,16 +165,17 @@ export function PackFloor({
 
           {selected && (
             <div id="pack-detail" className="grid scroll-mt-24 items-start gap-6 rounded-[22px] border border-white/10 bg-[#14171e] p-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:p-6">
-              <div className="rounded-2xl bg-[#0a0a0a] p-4">
-                {selected.imageUrl?.includes('blob.vercel-storage.com') && (
+              <div className={`relative overflow-hidden rounded-2xl bg-[#0a0a0a] ${fillsSquare(selected.imageUrl) ? '' : 'p-4'}`}>
+                {fillsSquare(selected.imageUrl) && <span className="block aspect-square" aria-hidden="true" />}
+                {packArt(selected.imageUrl) && (
                   <img
                     src={selected.imageUrl}
                     alt={selected.name}
-                    width={1080}
+                    width={fillsSquare(selected.imageUrl) ? 1920 : 1080}
                     height={1080}
                     loading="lazy"
                     decoding="async"
-                    className="aspect-square w-full object-contain"
+                    className={fillsSquare(selected.imageUrl) ? 'absolute inset-0 size-full object-cover' : 'aspect-square w-full object-contain'}
                   />
                 )}
               </div>

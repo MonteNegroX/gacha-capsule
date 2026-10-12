@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
-import { findMachine, loadPublicMachines } from '@/lib/gacha/catalog'
 import { gatePayment, packOpenable } from '@/lib/gacha/pack-access'
 import { insertPull, publicPull, workerFresh } from '@/lib/gacha/pull-store'
+import { findListedMachine, openerWorkerId } from '@/lib/gacha/ripcars-pack'
 import { parseUnits } from '@/lib/gacha/units'
 import { vaultCanOpen } from '@/lib/gacha/vault-stock'
 import { treasuryAddress, verifyHyperliquidPayment, verifyRobinhoodPayment } from '@/lib/gacha/verify-payment'
@@ -27,10 +27,9 @@ export async function POST(request: Request) {
   if (!/^[a-z0-9_]+$/.test(packType)) {
     return NextResponse.json({ error: 'Unknown pack' }, { status: 400 })
   }
-
   let machine
   try {
-    machine = findMachine(await loadPublicMachines(), packType)
+    machine = await findListedMachine(packType)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Machine list failed'
     return NextResponse.json({ error: message }, { status: 502 })
@@ -71,7 +70,7 @@ export async function POST(request: Request) {
       : 'This pack is coming soon. This payment will be returned.'
   if (status === 'PAYMENT_CONFIRMED') {
     const stocked = await vaultCanOpen(priceRaw).catch(() => false)
-    const fresh = await workerFresh(Date.now()).catch(() => false)
+    const fresh = await workerFresh(Date.now(), 120_000, openerWorkerId(machine.code)).catch(() => false)
     if (!stocked || !fresh) {
       status = 'REFUND_PENDING'
       error = !stocked

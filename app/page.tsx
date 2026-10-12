@@ -8,6 +8,8 @@ import { TasksCard } from '@/components/tasks-card'
 import { LeaderboardCard } from '@/components/leaderboard-card'
 import { SiteFooter } from '@/components/site-footer'
 import { loadPublicMachines } from '@/lib/gacha/catalog'
+import { orderMachines } from '@/lib/gacha/pack-access'
+import { withRipCars } from '@/lib/gacha/ripcars-pack'
 import type { GachaMachine } from '@/lib/gacha/types'
 import { listListedDeals, type ListedDeal } from '@/lib/gacha/pull-store'
 import { loadVaultListing } from '@/lib/gacha/vault-listing'
@@ -30,6 +32,7 @@ export default async function Page({
   } catch {
     unavailable = true
   }
+  machines = orderMachines(withRipCars(machines))
 
   const shots = machines.flatMap((machine) =>
     machine.imageUrl?.includes('blob.vercel-storage.com')
@@ -52,8 +55,8 @@ export default async function Page({
       <HeroSection />
 
       <div className="mx-auto flex max-w-7xl flex-col gap-24 px-6 pt-16 pb-24 sm:px-6 lg:gap-32 lg:px-12">
-        <HowItWorks shots={shots.slice(0, 4)} />
         <PackFloor machines={machines} unavailable={unavailable} treasury={treasury} initialCategory={category} />
+        <HowItWorks shots={shots.slice(0, 4)} />
         <BorrowDesk machine={starter} listing={loadVaultListing()} deals={deals} treasury={treasury} />
 
         <section id="quests" className="grid scroll-mt-24 grid-cols-1 gap-6 md:grid-cols-2">

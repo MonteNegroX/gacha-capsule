@@ -1,0 +1,11 @@
+.git
+.next
+node_modules
+gacha-backend
+scratch
+data
+public
+**/.env
+**/.env.*
+**/keypair.json
+**/node_modules

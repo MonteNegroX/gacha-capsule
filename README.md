@@ -88,6 +88,7 @@ Browser  →  Next.js (Vercel)  →  POST /api/open/pay
                 ▲
                 │
      capsule-worker (Railway)  →  opener/  →  Collector Crypt
+     ripcars-worker (Railway)  →  Rip Cars Garage Pack, same Solana key
                 │
                 ▼
          Robinhood USDG payout or refund
@@ -98,7 +99,8 @@ Browser  →  Next.js (Vercel)  →  POST /api/open/pay
 | `app/page.tsx` | Homepage: hero, pack floor, how it works |
 | `app/lend/page.tsx` | Fund a listing, or list a Solana card |
 | `app/api/open/pay/route.ts` | Verify a pack payment. Hyperliquid only when `network` is `hyperliquid`. |
-| `scripts/capsule-worker.ts` | Production worker. Opens packs and sends USDG. |
+| `scripts/capsule-worker.ts` | Production worker for Collector Crypt packs. Opens packs and sends USDG. |
+| `scripts/ripcars-worker.ts` | Production worker for the Garage Pack. Same image, different start command. |
 | `opener/` | Collector Crypt open, buyback, and held-card sale. Copied into the worker image. |
 | `lib/capsule/` | Pack, choice, and lend rules that do not touch the network. |
 | `documentation/` | GitBook draft. Not published. |
@@ -110,13 +112,13 @@ Browser  →  Next.js (Vercel)  →  POST /api/open/pay
 | --- | --- | --- |
 | Local | `pnpm dev` on port 3000 | Same database as production. |
 | Site | Vercel project `gacha-capsule` | Manual deploy. The Git webhook often does not fire. |
-| Worker | Railway, image from the `Dockerfile` | One replica. This is the only worker. |
+| Worker | Railway, image from the `Dockerfile` | One replica of `capsule-worker`. The Garage Pack needs a second service running `ripcars-worker`. |
 
 The `Dockerfile` installs with `pnpm install --frozen-lockfile`. If you add a dependency, commit the lockfile with it.
 
 ## Gotchas
 
-- A second worker on this database double-opens packs and double-pays. Do not start `scripts/capsule-worker.ts` locally while Railway is running.
+- A second copy of the same worker on this database double-opens packs and double-pays. Do not start `scripts/capsule-worker.ts` or `scripts/ripcars-worker.ts` locally while that Railway service is running. The two Railway services are different: one ignores Garage Pack rows, the other handles only those rows.
 - Restarting the worker while a row is `OPENING` leaves that row for manual review.
 - `GACHA_LAB_LIVE` stays false. `/lab` is not linked from the site.
 - Hyperliquid USDC is a way to pay for a pack. The refund and the buyback are still Robinhood USDG.

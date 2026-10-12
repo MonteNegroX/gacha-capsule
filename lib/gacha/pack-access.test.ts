@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { doubleOffered, gatePayment, packOpenable } from './pack-access'
+import { doubleOffered, gatePayment, orderMachines, packOpenable } from './pack-access'
 
 describe('pack access', () => {
   it('keeps packs at or under $25 open', () => {
@@ -21,6 +21,23 @@ describe('pack access', () => {
     assert.equal(doubleOffered('Rare'), false)
     assert.equal(doubleOffered(''), false)
     assert.equal(doubleOffered(null), false)
+  })
+
+  it('puts the $25 pack first, then other open packs, then closed packs', () => {
+    const ordered = orderMachines([
+      { code: 'pokemon_250', price: 250, menuOrder: 1 },
+      { code: 'pokemon_10', price: 10, menuOrder: 30 },
+      { code: 'pokemon_25', price: 25, menuOrder: 80 },
+      { code: 'garage_20', price: 20, menuOrder: 20 },
+      { code: 'pokemon_50', price: 50, menuOrder: 2 },
+    ])
+    assert.deepEqual(ordered.map((machine) => machine.code), [
+      'pokemon_25',
+      'garage_20',
+      'pokemon_10',
+      'pokemon_250',
+      'pokemon_50',
+    ])
   })
 
   it('queues an exact payment for an open pack and refunds the rest', () => {
