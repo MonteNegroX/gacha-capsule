@@ -20,3 +20,24 @@ export function solanaAddress(value: string): string | null {
   if (bytes.length !== 32) return null
   return value
 }
+
+export function base58Encode(bytes: Uint8Array): string {
+  if (bytes.length === 0) return ''
+  const digits = [0]
+  for (let i = 0; i < bytes.length; i += 1) {
+    let carry = bytes[i]
+    for (let j = 0; j < digits.length; j += 1) {
+      const next = digits[j] * 256 + carry
+      digits[j] = next % 58
+      carry = Math.floor(next / 58)
+    }
+    while (carry > 0) {
+      digits.push(carry % 58)
+      carry = Math.floor(carry / 58)
+    }
+  }
+  let out = ''
+  for (let i = 0; bytes[i] === 0 && i < bytes.length - 1; i += 1) out += '1'
+  for (let i = digits.length - 1; i >= 0; i -= 1) out += ALPHABET[digits[i]]
+  return out
+}

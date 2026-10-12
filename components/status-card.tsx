@@ -55,7 +55,7 @@ export function StatusCard() {
         <div className="flex items-center gap-2">
           <ShieldCheck className="size-4 text-[#3c8aff]" />
           <span className="text-xs font-bold uppercase tracking-widest text-[#b1b7c3]">
-            <a href="/profile" className="hover:text-[#3c8aff]">Collector Profile</a>
+            <a href="/profile" className="hover:text-[#3c8aff]">Profile</a>
           </span>
         </div>
         {authenticated ? (
@@ -84,7 +84,7 @@ export function StatusCard() {
               {username}
             </span>
             <span className="text-xs font-medium text-[#b1b7c3]">
-              {authenticated ? 'Season 1 Participant' : 'Unregistered Collector'}
+              {authenticated ? 'Season 1' : 'Not signed in'}
             </span>
           </div>
         </div>
@@ -98,7 +98,7 @@ export function StatusCard() {
         <div className="flex flex-col gap-1 rounded-xl border border-white/5 bg-[#1f232d]/40 p-3.5">
           <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#b1b7c3]">
             <Zap className="size-3.5 text-[#3c8aff]" />
-            Earned PTS
+            Points
           </span>
           <span className="font-heading text-3xl font-bold text-[#3c8aff]">
             {points.toLocaleString('en-US')}
@@ -108,7 +108,7 @@ export function StatusCard() {
         <div className="flex flex-col gap-1 rounded-xl border border-white/5 bg-[#1f232d]/40 p-3.5">
           <span className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-[#b1b7c3]">
             <Award className="size-3.5 text-[#ffd12f]" />
-            Global Rank
+            Rank
           </span>
           <span className="font-heading text-3xl font-bold text-white">
             #{rank}
@@ -121,13 +121,13 @@ export function StatusCard() {
         <div className="flex items-center justify-between text-xs font-semibold text-[#b1b7c3]">
           <span className="flex items-center gap-1.5 text-white">
             <Flame className="size-3.5 text-[#fc401f]" />
-            Level {level} Progress
+            Level {level}
           </span>
           <span>{pointsInCurrentLevel} / 500 PTS</span>
         </div>
         <div className="h-2 w-full overflow-hidden rounded-full bg-[#0a0b0d]">
           <div
-            className="h-full rounded-full bg-gradient-to-r from-[#3c8aff] to-[#66c800] transition-all duration-500"
+            className="h-full rounded-full bg-gradient-to-r from-[#3c8aff] to-[#66c800] transition-[width] duration-500"
             style={{ width: `${progressPercent}%` }}
           />
         </div>
@@ -140,7 +140,7 @@ export function StatusCard() {
           onClick={login}
           className="mt-auto h-10 w-full bg-[#3c8aff] text-xs font-bold uppercase tracking-wider text-white hover:bg-[#0000ff] shadow-sm shadow-[#3c8aff]/20"
         >
-          Sign In to Start
+          Sign In
         </Button>
       )}
     </div>

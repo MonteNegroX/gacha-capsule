@@ -25,12 +25,12 @@ function ListedDesk({ listing }: { listing: VaultListing }) {
         <div className="flex flex-col gap-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Lend</p>
           <h2 id="borrow-heading" className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Fund the vault card.
+            Fund the Vault Card.
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
             This card stays in the Capsule vault. It was funded before the loan contract, so a new deposit is not open on it.
           </p>
-          <figure className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_50%_28%,#1a2a4a_0%,#0a0b0d_68%)] p-6">
+          <figure className="rounded-[22px] border border-white/10 bg-[#0a0a0a] p-6">
             <img
               src={listing.imageUrl}
               alt={listing.name}
@@ -41,7 +41,7 @@ function ListedDesk({ listing }: { listing: VaultListing }) {
           </figure>
         </div>
 
-        <div className="rounded-3xl border border-white/10 bg-[#14171e] p-5 sm:p-6">
+        <div className="rounded-[22px] border border-white/10 bg-[#14171e] p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <h3 className="font-heading text-xl font-bold text-white">Vault listing</h3>
             <p className="rounded-full bg-[#ffd12f]/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#ffd12f]">
@@ -110,7 +110,7 @@ export function BorrowDesk({
         <DealFund key={deal.orderId} {...deal} treasury={treasury} />
       ))}
       <a href="/lend" className="text-sm font-bold uppercase tracking-wide text-[#3c8aff]">
-        Open the lend desk
+        Fund a Listed Card
       </a>
     </div>
   )
@@ -123,16 +123,16 @@ function PreviewDesk({ machine }: { machine: GachaMachine | null }) {
         <div className="flex flex-col gap-5">
           <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Borrow</p>
           <h2 id="borrow-heading" className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">
-            Lock a pull. Take a term.
+            Borrow against a Pull.
           </h2>
           <p className="max-w-xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
-            The pull is the collateral. You repay, and it unlocks. This desk is a preview. Loans are not open.
+            The card is the collateral. This form is a sample, so it does not open a loan. Fund a listed card, or list your own, on the lend desk.
           </p>
           <ol className="flex flex-col gap-3">
             {[
-              'Put a pull up as collateral.',
-              'Take a fixed-term advance.',
-              'Repay. The pull unlocks.',
+              'The card is the collateral.',
+              'A funder deposits the principal.',
+              'Repay within the term, or the funder receives the card.',
             ].map((step, index) => (
               <li key={step} className="flex items-baseline gap-3 text-sm text-[#eef0f3]">
                 <span className="font-heading text-xs font-bold text-[#3c8aff]">{index + 1}</span>
@@ -141,7 +141,7 @@ function PreviewDesk({ machine }: { machine: GachaMachine | null }) {
             ))}
           </ol>
           {machine?.imageUrl?.includes('blob.vercel-storage.com') && (
-            <figure className="rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_50%_28%,#1a2a4a_0%,#0a0b0d_68%)] p-6">
+            <figure className="rounded-[22px] border border-white/10 bg-[#0a0a0a] p-6">
               <img
                 src={machine.imageUrl}
                 alt={machine.name}
@@ -155,7 +155,7 @@ function PreviewDesk({ machine }: { machine: GachaMachine | null }) {
           )}
         </div>
 
-        <form aria-describedby="borrow-note" className="rounded-3xl border border-white/10 bg-[#14171e] p-5 sm:p-6">
+        <form aria-describedby="borrow-note" className="rounded-[22px] border border-white/10 bg-[#14171e] p-5 sm:p-6">
           <div className="flex items-center justify-between gap-3">
             <h3 className="font-heading text-xl font-bold text-white">Loan desk</h3>
             <p className="rounded-full bg-[#3c8aff]/15 px-3 py-1 text-xs font-bold uppercase tracking-wide text-[#3c8aff]">
@@ -187,7 +187,9 @@ function PreviewDesk({ machine }: { machine: GachaMachine | null }) {
             <label className="flex flex-col gap-1.5 text-sm text-[#eef0f3]">
               Catalog EV
               <input
+                name="catalog-ev"
                 readOnly
+                autoComplete="off"
                 value={machine ? money(machine.ev) : '—'}
                 className="h-12 rounded-xl border border-white/10 bg-black/30 px-3 font-heading text-lg font-bold text-white"
               />
@@ -221,8 +223,10 @@ function PreviewDesk({ machine }: { machine: GachaMachine | null }) {
             <label className="flex flex-col gap-1.5 text-sm text-[#eef0f3]">
               Advance
               <input
+                name="advance"
                 inputMode="decimal"
-                placeholder="Set when the desk opens"
+                autoComplete="off"
+                placeholder="Set when the desk opens…"
                 className="h-12 rounded-xl border border-white/10 bg-black/30 px-3 text-base text-white placeholder:text-[#717886]"
               />
             </label>

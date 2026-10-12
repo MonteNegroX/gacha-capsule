@@ -45,7 +45,7 @@ export function VaultFund({
   const wallet = wallets.find((item) => item.type === 'ethereum' && item.walletClientType !== 'privy' && item.walletClientType !== 'privy-v2')
   const parsed = parseUsdg(amount, remaining)
   const charge = parsed ? buyoutCharge(parsed) : null
-  const buttonLabel = busy ? 'Confirm in wallet' : wallet ? `Fund ${charge ? formatRaw(charge.total) : amount} USDG` : 'Connect wallet'
+  const buttonLabel = busy ? 'Confirm in Wallet' : wallet ? `Fund ${charge ? formatRaw(charge.total) : amount} USDG` : 'Connect Wallet'
 
   async function fund(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -136,9 +136,9 @@ export function VaultFund({
       <button
         type="submit"
         disabled={!ready || busy}
-        className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]"
+        className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]"
       >
-        {ready ? buttonLabel : 'Loading'}
+        {ready ? buttonLabel : 'Loading…'}
       </button>
       <p id="fund-note" className="text-xs leading-relaxed text-[#717886]">
         Sends the total on Robinhood to {treasury}. The buyback covers the card. The {BUYOUT_FEE_PERCENT}% fee stays in the treasury for the bot. The card stays in the Solana vault.

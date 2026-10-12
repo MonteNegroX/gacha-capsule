@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { findMachine, loadPublicMachines } from '@/lib/gacha/catalog'
 import { labUnlocked, liveOpenEnabled } from '@/lib/gacha/lab-session'
-import { openPackLive } from '@/lib/gacha/live-open'
+import { openPackLive, quoteBuyback } from '@/lib/gacha/live-open'
 import { simulatePull } from '@/lib/gacha/simulate'
 
 export async function POST(request: Request) {
@@ -59,6 +59,7 @@ export async function POST(request: Request) {
   try {
     const result = await openPackLive(packType, turbo && machine.turboMode)
     result.buybackPct = machine.instantBuyback
+    result.buybackAmount = quoteBuyback(result.insuredValue, machine.instantBuyback, result.buybackAmount)
     return NextResponse.json({ result })
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Live open failed'

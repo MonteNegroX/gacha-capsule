@@ -5,11 +5,11 @@ import { PackOpen } from '@/components/gacha/pack-open'
 import { packOpenable } from '@/lib/gacha/pack-access'
 import type { GachaMachine, Rarity } from '@/lib/gacha/types'
 
-const RARITIES: { id: Rarity; label: string; swatch: string }[] = [
-  { id: 'common', label: 'Common', swatch: 'bg-[#b1b7c3]' },
-  { id: 'uncommon', label: 'Uncommon', swatch: 'bg-[#3c8aff]' },
-  { id: 'rare', label: 'Rare', swatch: 'bg-[#ffd12f]' },
-  { id: 'epic', label: 'Epic', swatch: 'bg-[#fea8cd]' },
+const RARITIES: { id: Rarity; label: string; color: string }[] = [
+  { id: 'common', label: 'Common', color: '#8a8a8a' },
+  { id: 'uncommon', label: 'Uncommon', color: '#3c8aff' },
+  { id: 'rare', label: 'Rare', color: '#c8a24a' },
+  { id: 'epic', label: 'Epic', color: '#fea8cd' },
 ]
 
 function money(value: number): string {
@@ -31,10 +31,12 @@ export function PackFloor({
   machines,
   unavailable,
   treasury = '',
+  initialCategory = '',
 }: {
   machines: GachaMachine[]
   unavailable?: boolean
   treasury?: string
+  initialCategory?: string
 }) {
   const categories = useMemo(() => {
     const seen: string[] = []
@@ -45,21 +47,34 @@ export function PackFloor({
   }, [machines])
 
   const starter = machines.find((machine) => machine.code === 'pokemon_25') ?? machines[0]
-  const [category, setCategory] = useState(starter?.category ?? categories[0] ?? '')
+  const fromUrl = categories.includes(initialCategory)
+  const initial = fromUrl ? initialCategory : starter?.category ?? categories[0] ?? ''
+  const [category, setCategory] = useState(initial)
   const visible = useMemo(
     () => machines.filter((machine) => machine.category === category),
     [machines, category],
   )
-  const [code, setCode] = useState(starter?.code ?? '')
+  const firstIn = machines.find((machine) => machine.category === initial)
+  const [code, setCode] = useState(fromUrl ? firstIn?.code ?? '' : starter?.code ?? '')
   const selected = machines.find((machine) => machine.code === code) ?? visible[0] ?? machines[0]
+
+  function chooseCategory(name: string) {
+    setCategory(name)
+    const next = machines.find((machine) => machine.category === name)
+    if (next) setCode(next.code)
+    const url = new URL(window.location.href)
+    url.searchParams.set('category', name)
+    const hash = url.hash || '#packs'
+    window.history.replaceState(null, '', `${url.pathname}?${url.searchParams.toString()}${hash}`)
+  }
 
   return (
     <section id="packs" className="flex scroll-mt-24 flex-col gap-6">
       <div className="flex flex-col gap-2">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Machines</p>
-        <h2 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">The floor</h2>
+        <h2 className="font-heading text-3xl font-bold tracking-tight text-white sm:text-4xl">Packs</h2>
         <p className="max-w-2xl text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
-          Packs above $25 are coming soon. The $25 pack opens in USDG on Robinhood.
+          Packs above $25 are coming soon. The $25 pack opens in USDG on Robinhood or USDC on Hyperliquid.
         </p>
       </div>
 
@@ -78,11 +93,7 @@ export function PackFloor({
                   type="button"
                   role="tab"
                   aria-selected={active}
-                  onClick={() => {
-                    setCategory(name)
-                    const next = machines.find((machine) => machine.category === name)
-                    if (next) setCode(next.code)
-                  }}
+                  onClick={() => chooseCategory(name)}
                   className={`shrink-0 rounded-full px-3 py-1.5 text-xs font-semibold uppercase tracking-wide focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff] ${
                     active ? 'bg-[#3c8aff] text-white' : 'bg-white/5 text-[#b1b7c3] hover:text-white'
                   }`}
@@ -106,7 +117,7 @@ export function PackFloor({
                     setCode(machine.code)
                     document.getElementById('pack-detail')?.scrollIntoView({ block: 'nearest' })
                   }}
-                  className={`flex h-full flex-col rounded-3xl border bg-[#14171e] p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff] ${
+                  className={`flex h-full flex-col rounded-[22px] border bg-[#14171e] p-3 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff] ${
                     active ? 'border-[#3c8aff]' : 'border-white/10 hover:border-white/25'
                   }`}
                 >
@@ -114,7 +125,7 @@ export function PackFloor({
                     {machine.imageUrl?.includes('blob.vercel-storage.com') ? (
                       <img
                         src={machine.imageUrl}
-                        alt=""
+                        alt={machine.name}
                         width={1080}
                         height={1080}
                         loading="lazy"
@@ -124,14 +135,14 @@ export function PackFloor({
                     ) : (
                       <span className="block aspect-square" />
                     )}
-                    <span className="absolute top-2 right-2 rounded-full bg-[#3c8aff] px-2 py-1 text-[10px] font-bold uppercase tracking-wide text-white">
-                      {closed ? 'Coming soon' : `${machine.instantBuyback}% buyback`}
+                    <span className="absolute top-2 right-2 rounded-full border border-white/20 bg-[#0a0a0a]/80 px-2 py-1 text-xs font-medium text-white/80">
+                      {closed ? 'Coming Soon' : `${machine.instantBuyback}% buyback`}
                     </span>
                   </span>
                   <span className="mt-3 line-clamp-2 min-h-10 text-sm font-semibold text-white">{machine.name}</span>
                   <span className="mt-1 font-heading text-lg font-bold text-[#ffd12f]">{money(machine.price)}</span>
                   <span className={`mt-3 flex h-11 items-center justify-center rounded-xl text-sm font-bold uppercase tracking-wide ${closed ? 'bg-white/10 text-[#b1b7c3]' : 'bg-[#3c8aff] text-white'}`}>
-                    {closed ? 'Coming soon' : 'Open pack'}
+                    {closed ? 'Coming Soon' : 'Open Pack'}
                   </span>
                 </button>
               )
@@ -139,8 +150,8 @@ export function PackFloor({
           </div>
 
           {selected && (
-            <div id="pack-detail" className="grid scroll-mt-24 items-start gap-6 rounded-3xl border border-white/10 bg-[#14171e] p-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:p-6">
-              <div className="rounded-2xl bg-[radial-gradient(circle_at_50%_28%,#1a2a4a_0%,#0a0b0d_68%)] p-4">
+            <div id="pack-detail" className="grid scroll-mt-24 items-start gap-6 rounded-[22px] border border-white/10 bg-[#14171e] p-4 lg:grid-cols-[minmax(0,18rem)_minmax(0,1fr)] lg:p-6">
+              <div className="rounded-2xl bg-[#0a0a0a] p-4">
                 {selected.imageUrl?.includes('blob.vercel-storage.com') && (
                   <img
                     src={selected.imageUrl}
@@ -179,11 +190,11 @@ export function PackFloor({
                     return (
                       <li key={rarity.id} className="grid grid-cols-[5.5rem_1fr_auto] items-center gap-2 text-xs">
                         <span className="flex items-center gap-2 text-[#eef0f3]">
-                          <span className={`size-2 rounded-full ${rarity.swatch}`} />
+                          <span className="size-2 rounded-full" style={{ background: rarity.color }} />
                           {rarity.label}
                         </span>
                         <span className="h-1.5 overflow-hidden rounded-full bg-white/10">
-                          <span className={`block h-full ${rarity.swatch}`} style={{ width: `${Math.max(chance * 100, 1)}%` }} />
+                          <span className="block h-full" style={{ width: `${Math.max(chance * 100, 1)}%`, background: rarity.color }} />
                         </span>
                         <span className="text-right text-[#b1b7c3]">
                           {percent(chance)}
@@ -201,7 +212,7 @@ export function PackFloor({
                     disabled
                     className="h-12 rounded-xl bg-white/10 text-sm font-bold uppercase tracking-wide text-[#b1b7c3]"
                   >
-                    Coming soon
+                    Coming Soon
                   </button>
                 )}
               </div>

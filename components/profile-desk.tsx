@@ -45,7 +45,7 @@ export function ProfileDesk() {
     <div className="flex flex-col gap-8">
       <header className="flex max-w-2xl flex-col gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Profile</p>
-        <h1 className="font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl">Your opens.</h1>
+        <h1 className="font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl">Your Opens.</h1>
         <p className="text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
           History for the wallet that paid on Robinhood. Quest points stay on the homepage.
         </p>
@@ -54,11 +54,11 @@ export function ProfileDesk() {
       {!ready ? <p className="text-sm text-[#b1b7c3]">Checking the wallet.</p> : null}
       {ready && !address ? (
         <button type="button" onClick={() => connectWallet()} className="h-12 max-w-xs rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
-          Connect wallet
+          Connect Wallet
         </button>
       ) : null}
       {address ? <p className="break-all font-mono text-xs text-[#717886]">{address}</p> : null}
-      {error ? <p className="text-sm text-[#fc401f]">{error}</p> : null}
+      {error ? <p role="alert" className="text-sm text-[#fc401f]">{error}</p> : null}
 
       {history ? (
         <>

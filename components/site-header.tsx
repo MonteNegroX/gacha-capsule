@@ -19,14 +19,14 @@ export function SiteHeader() {
 
   return (
     <header className="sticky top-0 z-50 border-b border-white/10 bg-[#0a0b0d]/70 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3.5 sm:px-6 lg:px-8">
-        <a href="/" className="flex items-center gap-2.5">
+      <div className="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 sm:px-6 lg:px-12">
+        <a href="/" className="flex items-center gap-2.5 rounded-full focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3c8aff]">
           <Image
             src="/images/logo.jpg"
             alt="Capsule Logo"
             width={32}
             height={32}
-            className="size-8 rounded-full object-cover ring-2 ring-brand-cerulean/60"
+            className="size-8 rounded-full object-cover"
           />
           <span className="font-heading text-base font-bold uppercase tracking-wider text-foreground">
             Capsule
@@ -40,7 +40,7 @@ export function SiteHeader() {
               href={link.href}
               target={link.external ? '_blank' : undefined}
               rel={link.external ? 'noopener noreferrer' : undefined}
-              className="text-sm font-medium text-[#b1b7c3] transition-colors hover:text-[#3c8aff]"
+              className="text-sm font-medium text-[#b1b7c3] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3c8aff]"
             >
               {link.label}
             </a>
@@ -56,7 +56,7 @@ export function SiteHeader() {
           aria-label={open ? 'Close menu' : 'Open menu'}
           aria-expanded={open}
           onClick={() => setOpen((v) => !v)}
-          className="flex size-9 items-center justify-center rounded-md text-white lg:hidden"
+          className="flex size-9 items-center justify-center rounded-md text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff] lg:hidden"
         >
           {open ? <X className="size-5" /> : <Menu className="size-5" />}
         </button>
@@ -72,7 +72,7 @@ export function SiteHeader() {
                 target={link.external ? '_blank' : undefined}
                 rel={link.external ? 'noopener noreferrer' : undefined}
                 onClick={() => setOpen(false)}
-                className="text-sm font-medium text-[#b1b7c3] transition-colors hover:text-[#3c8aff]"
+                className="text-sm font-medium text-[#b1b7c3] hover:text-white focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-4 focus-visible:outline-[#3c8aff]"
               >
                 {link.label}
               </a>

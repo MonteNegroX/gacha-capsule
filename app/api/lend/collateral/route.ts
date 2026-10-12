@@ -2,9 +2,26 @@ import { verifyMessage } from 'ethers'
 import { NextResponse } from 'next/server'
 import { collateralMessage, parseCollateral } from '@/lib/gacha/collateral'
 import { HELD_JOLTEON } from '@/lib/gacha/held-card'
-import { insertCollateral, mintAlreadyOpened } from '@/lib/gacha/pull-store'
+import { findCollateral, insertCollateral, mintAlreadyOpened } from '@/lib/gacha/pull-store'
 
 export const dynamic = 'force-dynamic'
+
+export async function GET(request: Request) {
+  const id = new URL(request.url).searchParams.get('id') ?? ''
+  if (!/^col_[a-f0-9]{16}$/.test(id)) return NextResponse.json({ error: 'Request was not found' }, { status: 400 })
+  try {
+    const row = await findCollateral(id)
+    if (!row) return NextResponse.json({ error: 'Request was not found' }, { status: 404 })
+    return NextResponse.json({
+      id: row.id,
+      status: row.status,
+      dealId: row.deal_id,
+      error: row.error?.replace(/postgres(?:ql)?:\/\/\S+/gi, 'db').slice(0, 180) ?? null,
+    })
+  } catch {
+    return NextResponse.json({ error: 'The listing could not be read' }, { status: 503 })
+  }
+}
 
 export async function POST(request: Request) {
   let mint = ''
@@ -37,7 +54,7 @@ export async function POST(request: Request) {
   try {
     const row = await insertCollateral({ mint: parsed.mint, owner, principalRaw: parsed.raw })
     if (row.owner !== owner || row.principal_raw !== parsed.raw.toString()) {
-      return NextResponse.json({ error: 'This card is already listed.' }, { status: 409 })
+      return NextResponse.json({ error: 'This card already has an open request.' }, { status: 409 })
     }
     return NextResponse.json({ id: row.id, status: row.status, error: row.error })
   } catch (err) {

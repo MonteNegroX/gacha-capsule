@@ -4,10 +4,10 @@ import { SiteHeader } from '@/components/site-header'
 
 export function SiteFrame({ children }: { children: ReactNode }) {
   return (
-    <main className="min-h-screen bg-[#0a0b0d]">
+    <div className="min-h-screen bg-[#0a0b0d]">
       <SiteHeader />
-      <div className="mx-auto flex max-w-7xl flex-col gap-10 px-4 py-14 sm:px-6 lg:px-8">{children}</div>
+      <main id="main" className="mx-auto flex max-w-7xl flex-col gap-16 px-6 py-16 sm:px-6 lg:px-12">{children}</main>
       <SiteFooter />
-    </main>
+    </div>
   )
 }

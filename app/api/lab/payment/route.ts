@@ -1,8 +1,25 @@
 import { NextResponse } from 'next/server'
 import { findMachine, loadPublicMachines } from '@/lib/gacha/catalog'
 import { labUnlocked } from '@/lib/gacha/lab-session'
-import { saveOrder } from '@/lib/gacha/orders'
+import { saveOrder, updateOrder, type LabOrder } from '@/lib/gacha/orders'
+import { simulatePull } from '@/lib/gacha/simulate'
+import type { GachaMachine, SpinResult } from '@/lib/gacha/types'
 import { treasuryAddress, verifyRobinhoodPayment } from '@/lib/gacha/verify-payment'
+
+function shownResult(order: LabOrder, machine: GachaMachine): SpinResult | null {
+  if (order.status !== 'PAYMENT_CONFIRMED' || !order.cardName) return null
+  return {
+    mode: 'test',
+    packType: order.packType,
+    rarity: order.rarity ?? 'common',
+    nftName: order.cardName,
+    insuredValue: null,
+    buybackAmount: order.buybackAmount,
+    buybackPct: machine.instantBuyback,
+    turboBuyback: false,
+    memo: order.memo,
+  }
+}
 
 export async function POST(request: Request) {
   if (!(await labUnlocked())) {
@@ -60,6 +77,18 @@ export async function POST(request: Request) {
     error: check.error ?? null,
   })
 
-  const status = saved.order.status === 'PAYMENT_CONFIRMED' ? 200 : 400
-  return NextResponse.json({ replay: saved.replay, order: saved.order }, { status })
+  let order = saved.order
+  if (check.ok && !saved.replay && !order.cardName) {
+    const pull = simulatePull(machine, false)
+    const updated = await updateOrder(order.orderId, {
+      memo: 'test-display',
+      cardName: pull.nftName,
+      rarity: pull.rarity,
+      buybackAmount: pull.buybackAmount,
+    })
+    if (updated) order = updated
+  }
+
+  const status = order.status === 'PAYMENT_CONFIRMED' ? 200 : 400
+  return NextResponse.json({ replay: saved.replay, order, result: shownResult(order, machine) }, { status })
 }

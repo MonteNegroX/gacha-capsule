@@ -31,10 +31,10 @@ export function LabGate({ configured }: { configured: boolean }) {
   }
 
   return (
-    <main className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-4">
+    <main id="main" className="mx-auto flex min-h-screen max-w-md flex-col justify-center gap-6 px-4">
       <div>
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Capsule lab</p>
-        <h1 className="mt-2 font-heading text-3xl font-bold text-white">Test bench</h1>
+        <h1 className="mt-2 font-heading text-3xl font-bold text-white">Test Bench</h1>
         <p className="mt-2 text-sm leading-relaxed text-[#b1b7c3]">
           This page is not linked from the site. It is for trying the machine before opening is public.
         </p>
@@ -49,7 +49,7 @@ export function LabGate({ configured }: { configured: boolean }) {
               autoComplete="current-password"
               value={password}
               onChange={(event) => setPassword(event.target.value)}
-              className="h-11 rounded-xl border border-white/15 bg-[#14171e] px-3 text-white outline-none focus:border-[#3c8aff]"
+              className="h-11 rounded-xl border border-white/15 bg-[#14171e] px-3 text-white outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]"
               required
             />
           </label>
@@ -61,7 +61,7 @@ export function LabGate({ configured }: { configured: boolean }) {
           <button
             type="submit"
             disabled={busy}
-            className="h-11 rounded-xl bg-[#3c8aff] text-sm font-bold text-white disabled:opacity-60"
+            className="h-11 rounded-xl bg-[#3c8aff] text-sm font-bold text-white disabled:opacity-60 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]"
           >
             {busy ? 'Checking…' : 'Unlock'}
           </button>

@@ -48,7 +48,7 @@ export function AuthButton({
   if (!ready) {
     return (
       <Button disabled size={size} className={className}>
-        Loading...
+        Loading…
       </Button>
     )
   }
@@ -69,7 +69,8 @@ export function AuthButton({
           size="sm"
           variant="outline"
           onClick={logout}
-          title="Log out"
+          aria-label="Log Out"
+          title="Log Out"
           className="size-8 border-white/10 bg-[#1f232d] p-0 text-[#b1b7c3] hover:bg-red-500/20 hover:text-red-400"
         >
           <LogOut className="size-3.5" />

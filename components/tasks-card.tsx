@@ -18,11 +18,18 @@ type TaskState = {
   url?: string
 }
 
+const taskCopy: Record<string, string> = {
+  follow: 'Posts about pack drops and allocations.',
+  like: 'The pinned post on @capsulepull.',
+  repost: 'Repost a post from @capsulepull.',
+  invite: '200 points when a friend finishes a quest.',
+}
+
 const initialTasks: TaskState[] = [
   {
     id: 'follow',
     title: 'Follow @capsulepull on X',
-    description: 'Pack drops & allocation updates',
+    description: 'Posts about pack drops and allocations.',
     points: 100,
     status: 'available',
     cta: 'Follow',
@@ -32,7 +39,7 @@ const initialTasks: TaskState[] = [
   {
     id: 'like',
     title: 'Like @capsulepull Pinned Post',
-    description: 'Support the official announcement',
+    description: 'The pinned post on @capsulepull.',
     points: 50,
     status: 'available',
     cta: 'Like',
@@ -42,7 +49,7 @@ const initialTasks: TaskState[] = [
   {
     id: 'repost',
     title: 'Repost @capsulepull Tweet',
-    description: 'Share with fellow TCG collectors',
+    description: 'Repost a post from @capsulepull.',
     points: 100,
     status: 'available',
     cta: 'Repost',
@@ -52,7 +59,7 @@ const initialTasks: TaskState[] = [
   {
     id: 'invite',
     title: 'Invite Friends',
-    description: '+200 PTS when a friend completes a quest',
+    description: '200 points when a friend finishes a quest.',
     points: 200,
     status: 'available',
     cta: 'Copy link',
@@ -95,7 +102,7 @@ export function TasksCard() {
       .then((res) => res.json())
       .then((data) => {
         if (data.tasks && data.tasks.length > 0) {
-          setTaskList(data.tasks)
+          setTaskList(data.tasks.map((task: TaskState) => ({ ...task, description: taskCopy[task.id] ?? task.description })))
           const earned = data.tasks
             .filter((t: TaskState) => t.status === 'completed')
             .reduce((acc: number, t: TaskState) => acc + t.points, 0)
@@ -179,7 +186,7 @@ export function TasksCard() {
           </span>
         </div>
         <Badge className="border border-[#66c800]/30 bg-[#66c800]/15 text-[10px] font-bold uppercase text-[#66c800]">
-          +{totalEarned} PTS Earned
+          {totalEarned} points
         </Badge>
       </div>
 
@@ -241,19 +248,23 @@ export function TasksCard() {
       {authenticated && (
         <div className="flex flex-col gap-2.5 rounded-xl border border-[#3c8aff]/30 bg-[#3c8aff]/10 p-4">
           <div className="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-[#3c8aff]">
-            <span className="flex items-center gap-1.5">
-              <Share2 className="size-3.5" />
+            <label htmlFor="referral-link" className="flex items-center gap-1.5">
+              <Share2 className="size-3.5" aria-hidden="true" />
               Your Referral Link
-            </span>
+            </label>
             <span className="text-[10px] text-[#b1b7c3]">+200 PTS per friend</span>
           </div>
 
           <div className="flex items-center gap-2">
             <input
+              id="referral-link"
+              name="referral-link"
               type="text"
               readOnly
               value={referralLink}
-              className="w-full min-w-0 rounded-lg border border-white/10 bg-[#0a0b0d] px-3 py-2 text-xs font-mono text-white outline-none focus:border-[#3c8aff]"
+              autoComplete="off"
+              spellCheck={false}
+              className="w-full min-w-0 rounded-lg border border-white/10 bg-[#0a0b0d] px-3 py-2 text-xs font-mono text-white outline-none focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]"
             />
             <Button
               size="sm"

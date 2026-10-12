@@ -1,7 +1,16 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useId, useMemo, useRef, useState } from 'react'
 import type { GachaMachine, Rarity, SpinResult } from '@/lib/gacha/types'
+import { CapsuleMachine, toneForCategory } from '@/components/gacha/capsule-machine'
+import {
+  ROBINHOOD_CHAIN_HEX,
+  ROBINHOOD_EXPLORER,
+  ROBINHOOD_RPC,
+  ROBINHOOD_USDG,
+  encodeUsdgTransfer,
+  usdgAmount,
+} from '@/lib/gacha/robinhood-transfer'
 
 const RARITIES: { id: Rarity; label: string; swatch: string }[] = [
   { id: 'common', label: 'Common', swatch: 'bg-[#b1b7c3]' },
@@ -25,11 +34,22 @@ function percent(value: number): string {
   return `${Number.isInteger(pct) ? pct.toFixed(0) : pct.toFixed(1)}%`
 }
 
+function slabColor(rarity: string): string {
+  if (rarity === 'epic') return '#fea8cd'
+  if (rarity === 'rare') return '#ffd12f'
+  if (rarity === 'uncommon') return '#3c8aff'
+  return '#b1b7c3'
+}
+
 type PayOrder = {
   orderId: string
-  status: 'PAYMENT_CONFIRMED' | 'PAYMENT_INVALID'
+  status: string
   packType: string
   error: string | null
+  cardName?: string | null
+  rarity?: string | null
+  buybackAmount?: number | null
+  payoutTx?: string | null
 }
 
 type Props = {
@@ -38,9 +58,26 @@ type Props = {
   unavailable?: boolean
   liveEnabled?: boolean
   treasuryConfigured?: boolean
+  treasuryAddress?: string
 }
 
-export function MachineFloor({ mode, machines, unavailable, liveEnabled = false, treasuryConfigured = false }: Props) {
+type EthereumProvider = {
+  request: (args: { method: string; params?: unknown[] }) => Promise<unknown>
+}
+
+function walletErrorCode(err: unknown): number | null {
+  if (typeof err === 'object' && err !== null && 'code' in err && typeof err.code === 'number') return err.code
+  return null
+}
+
+function browserWallet(): EthereumProvider | null {
+  if (typeof window === 'undefined') return null
+  const value = (window as Window & { ethereum?: EthereumProvider }).ethereum
+  if (!value || typeof value.request !== 'function') return null
+  return value
+}
+
+export function MachineFloor({ mode, machines, unavailable, liveEnabled = false, treasuryConfigured = false, treasuryAddress = '' }: Props) {
   const categories = useMemo(() => {
     const seen: string[] = []
     for (const machine of machines) {
@@ -59,16 +96,18 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
   const selected = machines.find((machine) => machine.code === code) ?? visible[0] ?? machines[0]
 
   const [turbo, setTurbo] = useState(true)
-  const [busy, setBusy] = useState<'test' | 'live' | null>(null)
+  const [busy, setBusy] = useState<'test' | 'live' | 'drop' | null>(null)
   const [error, setError] = useState('')
   const [result, setResult] = useState<SpinResult | null>(null)
   const [confirmLive, setConfirmLive] = useState(false)
+  const [confirmDrop, setConfirmDrop] = useState(false)
   const [txHash, setTxHash] = useState('')
   const [payBusy, setPayBusy] = useState(false)
   const [payError, setPayError] = useState('')
   const [payOrder, setPayOrder] = useState<PayOrder | null>(null)
   const [payReplay, setPayReplay] = useState(false)
   const dialogRef = useRef<HTMLDialogElement>(null)
+  const machineClipBase = useId().replace(/:/g, '')
 
   useEffect(() => {
     const dialog = dialogRef.current
@@ -112,32 +151,121 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
     }
   }
 
+  async function dropCard() {
+    if (!selected || mode !== 'lab' || !confirmDrop) return
+    setBusy('drop')
+    setError('')
+    try {
+      const res = await fetch('/api/lab/drop', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({ packType: selected.code, confirm: 'DROP' }),
+      })
+      const body = (await res.json()) as { result?: SpinResult; error?: string }
+      if (!res.ok || !body.result) {
+        setError(body.error || 'Card drop failed')
+        return
+      }
+      setResult(body.result)
+      setConfirmDrop(false)
+    } catch {
+      setError('Card drop failed')
+    } finally {
+      setBusy(null)
+    }
+  }
+
   function syncHashValidity(field: HTMLInputElement) {
     field.setAttribute('aria-invalid', field.matches(':user-invalid') ? 'true' : 'false')
   }
 
-  async function checkPayment(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
+  async function submitPayment(hash: string) {
     if (!selected || mode !== 'lab' || !treasuryConfigured) return
-    const field = event.currentTarget.elements.namedItem('txHash')
-    if (!(field instanceof HTMLInputElement) || !field.validity.valid) return
     setPayBusy(true)
     setPayError('')
     setPayOrder(null)
     setPayReplay(false)
     try {
-      const res = await fetch('/api/lab/payment', {
-        method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({ packType: selected.code, txHash: field.value.trim() }),
-      })
-      const body = (await res.json()) as { error?: string; replay?: boolean; order?: PayOrder | null }
-      setPayReplay(Boolean(body.replay))
-      if (body.order) setPayOrder(body.order)
-      if (!res.ok) setPayError(body.order?.error || body.error || 'Payment check failed')
+      for (let attempt = 0; attempt < 8; attempt += 1) {
+        const res = await fetch('/api/lab/payment', {
+          method: 'POST',
+          headers: { 'content-type': 'application/json' },
+          body: JSON.stringify({ packType: selected.code, txHash: hash }),
+        })
+        const body = (await res.json()) as { error?: string; replay?: boolean; order?: PayOrder | null; result?: SpinResult | null }
+        setPayReplay(Boolean(body.replay))
+        if (body.order) setPayOrder(body.order)
+        if (body.result) {
+          setResult(body.result)
+          return
+        }
+        const pending = /not found yet|Waiting for confirmations/i.test(body.error ?? '')
+        if (res.ok || !pending || attempt === 7) {
+          if (!res.ok) setPayError(body.order?.error || body.error || 'Payment check failed')
+          return
+        }
+        await new Promise((resolve) => setTimeout(resolve, 2000))
+      }
     } catch {
       setPayError('Payment check failed')
     } finally {
+      setPayBusy(false)
+    }
+  }
+
+  async function checkPayment(event: React.FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    const field = event.currentTarget.elements.namedItem('txHash')
+    if (!(field instanceof HTMLInputElement) || !field.validity.valid) return
+    await submitPayment(field.value.trim())
+  }
+
+  async function payOnRobinhood() {
+    if (!selected || !treasuryAddress) return
+    const wallet = browserWallet()
+    if (!wallet) {
+      setPayError('No wallet in this browser. Paste the transaction hash instead.')
+      return
+    }
+    setPayBusy(true)
+    setPayError('')
+    try {
+      try {
+        await wallet.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: ROBINHOOD_CHAIN_HEX }] })
+      } catch (err) {
+        if (walletErrorCode(err) !== 4902) throw err
+        await wallet.request({
+          method: 'wallet_addEthereumChain',
+          params: [{
+            chainId: ROBINHOOD_CHAIN_HEX,
+            chainName: 'Robinhood Chain',
+            nativeCurrency: { name: 'ETH', symbol: 'ETH', decimals: 18 },
+            rpcUrls: [ROBINHOOD_RPC],
+            blockExplorerUrls: [ROBINHOOD_EXPLORER],
+          }],
+        })
+      }
+      const accounts = await wallet.request({ method: 'eth_requestAccounts' })
+      const from = Array.isArray(accounts) ? accounts[0] : ''
+      if (typeof from !== 'string' || !from) throw new Error('Wallet did not return an account')
+      const hash = await wallet.request({
+        method: 'eth_sendTransaction',
+        params: [{
+          from,
+          to: ROBINHOOD_USDG,
+          data: encodeUsdgTransfer(treasuryAddress, usdgAmount(selected.price)),
+          value: '0x0',
+        }],
+      })
+      if (typeof hash !== 'string' || !/^0x[a-fA-F0-9]{64}$/.test(hash)) {
+        throw new Error('Wallet did not return a transaction hash')
+      }
+      setTxHash(hash)
+      setPayBusy(false)
+      await submitPayment(hash)
+    } catch (err) {
+      const cancelled = walletErrorCode(err) === 4001
+      setPayError(cancelled ? 'Payment was cancelled.' : err instanceof Error ? err.message : 'Payment failed')
       setPayBusy(false)
     }
   }
@@ -183,7 +311,7 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
           </div>
 
           <div className="flex gap-3 overflow-x-auto pb-1" aria-label="Machines">
-            {visible.map((machine) => {
+            {visible.map((machine, index) => {
               const active = machine.code === selected?.code
               return (
                 <button
@@ -191,18 +319,15 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
                   type="button"
                   aria-pressed={active}
                   onClick={() => setCode(machine.code)}
-                  className={`flex w-28 shrink-0 flex-col items-start gap-2 rounded-2xl border p-2 text-left ${
+                  className={`flex w-32 shrink-0 flex-col items-start gap-2 rounded-2xl border p-2 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff] ${
                     active ? 'border-[#3c8aff] bg-[#3c8aff]/10' : 'border-white/10 bg-[#14171e] hover:border-white/25'
                   }`}
                 >
-                  <span className="flex h-16 w-full items-center justify-center overflow-hidden rounded-xl bg-[#0a0b0d]">
-                    {machine.imageUrl ? (
-                      // Pack art is served by Collector Crypt. Next image optimization is off for remote hosts.
-                      <img src={machine.imageUrl} alt="" className="h-full w-full object-contain" />
-                    ) : (
-                      <span className="text-xs text-[#717886]">No art</span>
-                    )}
-                  </span>
+                  <CapsuleMachine
+                    price={money(machine.price)}
+                    tone={toneForCategory(machine.category)}
+                    clipId={`${machineClipBase}-rail-${index}`}
+                  />
                   <span className="line-clamp-2 text-[11px] font-semibold leading-tight text-white">{machine.name}</span>
                   <span className="text-xs font-bold text-[#ffd12f]">{money(machine.price)}</span>
                 </button>
@@ -212,16 +337,15 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
 
           {selected && (
             <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_22rem]">
-              <div className="relative flex min-h-[22rem] items-center justify-center overflow-hidden rounded-3xl border border-white/10 bg-[radial-gradient(circle_at_center,#1a2a4a_0%,#0a0b0d_68%)] p-8">
-                {selected.imageUrl ? (
-                  <img
-                    src={selected.imageUrl}
-                    alt={selected.name}
-                    className="pack-float relative z-10 max-h-80 w-full object-contain drop-shadow-[0_20px_40px_rgba(60,138,255,0.35)] motion-safe:animate-[pack-float_4.5s_ease-in-out_infinite]"
+              <div className="relative flex min-h-[28rem] items-end justify-center overflow-hidden rounded-3xl border border-white/10 bg-[#0a0a0a] px-6 pt-6 pb-2">
+                <div className="w-full max-w-[17rem] drop-shadow-[0_24px_40px_rgba(60,138,255,0.28)]">
+                  <CapsuleMachine
+                    price={money(selected.price)}
+                    tone={toneForCategory(selected.category)}
+                    spinning={busy !== null}
+                    clipId={`${machineClipBase}-hero`}
                   />
-                ) : (
-                  <p className="text-sm text-[#b1b7c3]">No pack art</p>
-                )}
+                </div>
               </div>
 
               <aside className="flex flex-col gap-4 rounded-3xl border border-white/10 bg-[#14171e] p-5">
@@ -302,6 +426,26 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
                     <label className="flex items-start gap-2 text-xs text-[#b1b7c3]">
                       <input
                         type="checkbox"
+                        checked={confirmDrop}
+                        disabled={busy !== null}
+                        onChange={(event) => setConfirmDrop(event.target.checked)}
+                        className="mt-0.5 size-4 accent-[#ffd12f]"
+                      />
+                      <span>
+                        Spend {money(selected.price)} USDC from the bot wallet and show the card. Turbo stays off.
+                      </span>
+                    </label>
+                    <button
+                      type="button"
+                      disabled={!confirmDrop || busy !== null}
+                      onClick={() => void dropCard()}
+                      className="h-12 rounded-xl bg-[#ffd12f] text-sm font-bold uppercase tracking-wide text-[#0a0b0d] disabled:opacity-40"
+                    >
+                      {busy === 'drop' ? 'Opening…' : 'Drop the card'}
+                    </button>
+                    <label className="flex items-start gap-2 text-xs text-[#b1b7c3]">
+                      <input
+                        type="checkbox"
                         checked={confirmLive}
                         disabled={!liveEnabled || busy !== null}
                         onChange={(event) => setConfirmLive(event.target.checked)}
@@ -323,12 +467,25 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
                     <form method="post" action="/api/lab/payment" onSubmit={checkPayment} className="flex flex-col gap-2 border-t border-white/10 pt-3">
                       <fieldset disabled={!treasuryConfigured || payBusy} className="flex min-w-0 flex-col gap-2 border-0 p-0">
                         <legend className="text-xs font-semibold uppercase tracking-wide text-[#717886]">Robinhood USDG</legend>
-                        <label htmlFor="payment-tx" className="text-sm text-[#eef0f3]">
-                          Payment transaction
-                        </label>
                         <p id="payment-help" className="text-xs leading-relaxed text-[#b1b7c3]">
-                          Use the 32-byte hash of the USDG transfer. A confirmed payment is saved as an order and does not open a pack.
+                          Pay the pack price in USDG on Robinhood. A confirmed payment shows a test card. It does not open a Collector Crypt pack and does not pay a buyback.
                         </p>
+                        {treasuryAddress && (
+                          <p className="break-all font-mono text-[11px] leading-relaxed text-[#eef0f3]">
+                            Send USDG to {treasuryAddress}
+                          </p>
+                        )}
+                        <button
+                          type="button"
+                          disabled={!treasuryAddress || payBusy}
+                          onClick={() => void payOnRobinhood()}
+                          className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white hover:bg-[#0000ff] disabled:opacity-40"
+                        >
+                          {payBusy ? 'Checking…' : `Pay ${money(selected.price)} USDG`}
+                        </button>
+                        <label htmlFor="payment-tx" className="text-sm text-[#eef0f3]">
+                          Or paste the transaction hash
+                        </label>
                         <input
                           id="payment-tx"
                           name="txHash"
@@ -365,11 +522,35 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
                         </p>
                       )}
                       {payOrder && (
-                        <p className="text-xs leading-relaxed text-[#b1b7c3]">
-                          {payReplay ? 'Already recorded. ' : ''}
-                          {payOrder.orderId} · {payOrder.status}
-                          {payOrder.status === 'PAYMENT_CONFIRMED' ? '. No pack was opened.' : ''}
-                        </p>
+                        <div className="rounded-xl border border-white/10 bg-black/20 p-3 text-xs leading-relaxed text-[#b1b7c3]">
+                          {payReplay && <p className="text-[#ffd12f]">Already recorded.</p>}
+                          <p className="font-mono text-[10px] text-[#717886]">{payOrder.orderId}</p>
+                          <p className="mt-1 font-semibold text-white">
+                            {payOrder.status === 'PAYMENT_CONFIRMED' && 'Payment confirmed on Robinhood.'}
+                            {payOrder.status === 'PAYMENT_INVALID' && 'Payment invalid'}
+                          </p>
+                          {payOrder.status === 'PAYMENT_CONFIRMED' && (
+                            <p className="mt-1">Test card only. The Solana pack was not opened.</p>
+                          )}
+                          {payOrder.cardName && (
+                            <p className="mt-2 font-semibold text-white">{payOrder.cardName}</p>
+                          )}
+                          {payOrder.rarity && (
+                            <p className="text-[#ffd12f] capitalize">{payOrder.rarity}</p>
+                          )}
+                          {payOrder.buybackAmount != null && (
+                            <p className="mt-1">
+                              Buyback:{' '}
+                              <span className="font-bold text-white">{money(payOrder.buybackAmount)} USDG</span>
+                            </p>
+                          )}
+                          {payOrder.payoutTx && (
+                            <p className="mt-1 font-mono text-[10px] break-all text-[#3c8aff]">{payOrder.payoutTx}</p>
+                          )}
+                          {payOrder.error && (
+                            <p className="mt-1 text-[#fc401f]">{payOrder.error}</p>
+                          )}
+                        </div>
                       )}
                       {payError && (
                         <p role="alert" className="text-sm text-[#fc401f]">
@@ -398,14 +579,30 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
         onClose={() => setResult(null)}
       >
         {result && (
-          <div className="rounded-3xl border border-white/10 bg-[#14171e] p-6">
+          <div
+            className={`rounded-3xl border bg-[#14171e] p-6 ${result.memo === 'card-drop' ? 'card-drop' : ''}`}
+            style={{ borderColor: result.memo === 'card-drop' ? slabColor(result.rarity) : 'rgb(255 255 255 / 0.1)' }}
+          >
             <p className="text-xs font-semibold uppercase tracking-[0.16em] text-[#3c8aff]">
-              {result.mode === 'test' ? 'Test spin' : 'Live open'}
+              {result.memo === 'card-drop'
+                ? 'Card drop'
+                : result.memo === 'test-display'
+                  ? 'Robinhood payment'
+                  : result.mode === 'test'
+                    ? 'Test spin'
+                    : 'Live open'}
             </p>
-            <h3 id="reveal-title" className="mt-2 font-heading text-2xl font-bold text-white">
+            {result.imageUrl && (
+              <img
+                src={result.imageUrl}
+                alt=""
+                className="mt-4 h-56 w-full rounded-2xl bg-black/30 object-contain"
+              />
+            )}
+            <h3 id="reveal-title" className="mt-4 font-heading text-2xl font-bold text-white">
               {result.nftName}
             </h3>
-            <p className="mt-1 text-sm capitalize text-[#ffd12f]">{result.rarity}</p>
+            <p className="mt-1 text-sm capitalize" style={{ color: slabColor(result.rarity) }}>{result.rarity}</p>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
               <div>
                 <dt className="text-[#717886]">Insured</dt>
@@ -421,11 +618,15 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
               </div>
             </dl>
             <p className="mt-4 text-sm leading-relaxed text-[#b1b7c3]">
-              {result.mode === 'test'
-                ? 'No Collector Crypt pack was opened. Nothing was paid out.'
-                : result.turboBuyback
-                  ? 'Common was sold by turbo. The buyback stayed on the Solana bot wallet.'
-                  : 'Buyback, when it ran, stayed on the Solana bot wallet. The player was not paid.'}
+              {result.memo === 'card-drop'
+                ? 'The card stayed in the bot wallet. Turbo was off, and nothing was paid on Robinhood.'
+                : result.memo === 'test-display'
+                  ? 'Payment confirmed. This is a test card. The Solana pack was not opened and nothing was paid out.'
+                  : result.mode === 'test'
+                    ? 'No Collector Crypt pack was opened. Nothing was paid out.'
+                    : result.turboBuyback
+                      ? 'Common was sold by turbo. The buyback stayed on the Solana bot wallet.'
+                      : 'Buyback, when it ran, stayed on the Solana bot wallet. The player was not paid.'}
             </p>
             <button
               type="button"
@@ -439,15 +640,21 @@ export function MachineFloor({ mode, machines, unavailable, liveEnabled = false,
       </dialog>
 
       <style>{`
-        @keyframes pack-float {
-          0%, 100% { transform: translateY(0); }
-          50% { transform: translateY(-10px); }
-        }
         #payment-tx:user-invalid {
           border-color: #fc401f;
         }
         #payment-tx:user-invalid + #payment-format {
           display: block;
+        }
+        .card-drop {
+          animation: card-drop 720ms cubic-bezier(.16, .84, .32, 1);
+        }
+        @keyframes card-drop {
+          from { transform: translateY(-28%) rotate(-6deg) scale(.92); opacity: 0; }
+          to { transform: none; opacity: 1; }
+        }
+        @media (prefers-reduced-motion: reduce) {
+          .card-drop { animation: none; }
         }
       `}</style>
     </section>

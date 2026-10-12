@@ -14,7 +14,7 @@ function PodiumSpot({ user, featured }: { user: LeaderboardUser; featured?: bool
   return (
     <div
       className={cn(
-        'flex flex-col items-center gap-2 rounded-xl border border-white/5 bg-[#1f232d]/40 px-3 py-4 text-center transition-all',
+        'flex flex-col items-center gap-2 rounded-xl border border-white/5 bg-[#1f232d]/40 px-3 py-4 text-center transition-[transform,border-color,background-color]',
         featured && 'border-[#3c8aff]/50 bg-[#3c8aff]/10 sm:-translate-y-3',
       )}
     >
@@ -69,7 +69,7 @@ export function LeaderboardCard() {
             Leaderboard
           </span>
         </div>
-        <span className="text-xs text-muted-foreground">Live Season</span>
+        <span className="text-xs text-muted-foreground">Season 1</span>
       </div>
 
       <div className="grid grid-cols-3 gap-3">

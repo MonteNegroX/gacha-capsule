@@ -15,9 +15,9 @@
   max-inline-size: 100%;
   max-block-size: min(36rem, 80vh);
   container-type: inline-size;
-  border: 1px solid rgb(255 255 255 / 0.1);
-  border-radius: 1.25rem;
-  background: #14171e;
+  border: 1px solid rgb(255 255 255 / 12%);
+  border-radius: 8px;
+  background: #111111;
 }
 
 .table {
@@ -30,7 +30,7 @@
   position: sticky;
   inset-block-start: 0;
   z-index: 1;
-  background: #14171e;
+  background: #111111;
 }
 
 .cell,
@@ -39,21 +39,21 @@
   border-bottom: 1px solid rgb(255 255 255 / 0.08);
   font-size: 0.875rem;
   text-align: start;
-  color: #eef0f3;
+  color: #fff;
 }
 
 .head .cell {
-  color: #717886;
-  font-size: 0.65rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
+  color: rgb(255 255 255 / 50%);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .rowHead {
   position: sticky;
   inset-inline-start: 0;
-  background: #14171e;
+  background: #111111;
   font-weight: 700;
 }
 
@@ -86,10 +86,10 @@
     content: attr(data-label);
     display: block;
     margin-block-end: 0.15rem;
-    color: #717886;
-    font-size: 0.65rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+    color: rgb(255 255 255 / 50%);
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0;
+    text-transform: none;
   }
 }

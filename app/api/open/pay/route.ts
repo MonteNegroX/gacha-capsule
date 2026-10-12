@@ -4,7 +4,7 @@ import { gatePayment, packOpenable } from '@/lib/gacha/pack-access'
 import { insertPull, publicPull, workerFresh } from '@/lib/gacha/pull-store'
 import { parseUnits } from '@/lib/gacha/units'
 import { vaultCanOpen } from '@/lib/gacha/vault-stock'
-import { treasuryAddress, verifyRobinhoodPayment } from '@/lib/gacha/verify-payment'
+import { treasuryAddress, verifyHyperliquidPayment, verifyRobinhoodPayment } from '@/lib/gacha/verify-payment'
 
 export const dynamic = 'force-dynamic'
 
@@ -15,10 +15,12 @@ export async function POST(request: Request) {
 
   let packType = ''
   let txHash = ''
+  let network: 'robinhood' | 'hyperliquid' = 'robinhood'
   try {
-    const body = (await request.json()) as { packType?: unknown; txHash?: unknown }
+    const body = (await request.json()) as { packType?: unknown; txHash?: unknown; network?: unknown }
     packType = typeof body.packType === 'string' ? body.packType : ''
     txHash = typeof body.txHash === 'string' ? body.txHash.trim() : ''
+    if (body.network === 'hyperliquid') network = 'hyperliquid'
   } catch {
     return NextResponse.json({ error: 'Bad request' }, { status: 400 })
   }
@@ -37,7 +39,9 @@ export async function POST(request: Request) {
 
   let check
   try {
-    check = await verifyRobinhoodPayment(txHash, machine.price)
+    check = network === 'hyperliquid'
+      ? await verifyHyperliquidPayment(txHash, machine.price)
+      : await verifyRobinhoodPayment(txHash, machine.price)
   } catch (err) {
     const message = err instanceof Error ? err.message : 'Payment check failed'
     return NextResponse.json({ error: message }, { status: 502 })

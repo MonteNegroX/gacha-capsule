@@ -1,16 +1,18 @@
-import type { Metadata } from 'next'
 import { RecordTable } from '@/components/record-table'
 import { SiteFrame } from '@/components/site-frame'
 import { choiceLabel } from '@/lib/gacha/open-label'
 import { loadProtocolStats, type ProtocolStats } from '@/lib/gacha/stats'
 import { formatUnits } from '@/lib/gacha/units'
+import { pageMeta } from '@/lib/site-meta'
 
 export const dynamic = 'force-dynamic'
 
-export const metadata: Metadata = {
-  title: 'Statistics — Capsule',
-  description: 'Vault balances, pack openings, payouts, and loans.',
-}
+export const metadata = pageMeta({
+  path: '/statistics',
+  title: 'Vault Totals | Capsule',
+  description:
+    'Opens, payouts, and funded loans from the current vault records. If a source does not load, that number is left blank.',
+})
 
 function usd(raw: string | null, unit: string): string {
   if (raw == null || !/^\d+$/.test(raw)) return 'Unavailable'
@@ -45,9 +47,9 @@ export default async function StatisticsPage() {
     <SiteFrame>
       <header className="flex max-w-2xl flex-col gap-3">
         <p className="text-xs font-semibold uppercase tracking-[0.18em] text-[#3c8aff]">Statistics</p>
-        <h1 className="font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl">The vault, counted.</h1>
+        <h1 className="font-heading text-4xl font-bold tracking-tight text-white sm:text-5xl">Vault Totals</h1>
         <p className="text-sm leading-relaxed text-[#b1b7c3] sm:text-base">
-          Opens, payouts, and loans from the live book. A figure stays unavailable when its source does not answer.
+          Opens, payouts, and loans from the current records. If a source fails, that number is left blank.
         </p>
       </header>
 
@@ -77,7 +79,7 @@ export default async function StatisticsPage() {
           </section>
 
           <section className="flex flex-col gap-4">
-            <h2 className="font-heading text-2xl font-bold text-white">Recent opens</h2>
+            <h2 className="font-heading text-2xl font-bold text-white">Recent Opens</h2>
             {stats.recent.length === 0 ? (
               <p className="text-sm text-[#b1b7c3]">No pack has been opened yet.</p>
             ) : (

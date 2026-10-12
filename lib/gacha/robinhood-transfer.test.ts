@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import { describe, it } from 'node:test'
-import { BUYOUT_FEE_PERCENT, ROBINHOOD_CHAIN_HEX, ROBINHOOD_CHAIN_ID, buyoutCharge, encodeUsdgTransfer, parseUsdg, usdgAmount } from './robinhood-transfer'
+import { BUYOUT_FEE_PERCENT, HYPERLIQUID_CHAIN_HEX, HYPERLIQUID_CHAIN_ID, HYPERLIQUID_USDC, ROBINHOOD_CHAIN_HEX, ROBINHOOD_CHAIN_ID, buyoutCharge, encodeUsdgTransfer, parseUsdg, usdgAmount } from './robinhood-transfer'
 
 describe('robinhood transfer', () => {
   it('uses chain 4663 and encodes a 25 USDG transfer', () => {
@@ -27,5 +27,11 @@ describe('robinhood transfer', () => {
     const charge = buyoutCharge(BigInt(17_000000))
     assert.equal(charge.fee, BigInt(510000))
     assert.equal(charge.total, BigInt(17_510000))
+  })
+
+  it('uses HyperEVM chain 999 and Circle USDC', () => {
+    assert.equal(Number.parseInt(HYPERLIQUID_CHAIN_HEX, 16), HYPERLIQUID_CHAIN_ID)
+    assert.equal(HYPERLIQUID_USDC.toLowerCase(), '0xb88339cb7199b77e23db6e890353e22632ba630f')
+    assert.equal(usdgAmount(25), BigInt(25_000000))
   })
 })

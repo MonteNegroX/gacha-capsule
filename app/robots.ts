@@ -4,7 +4,9 @@ export default function robots(): MetadataRoute.Robots {
   return {
     rules: {
       userAgent: '*',
-      disallow: '/lab',
+      allow: '/',
+      disallow: ['/lab', '/api'],
     },
+    sitemap: 'https://www.capsulepull.xyz/sitemap.xml',
   }
 }

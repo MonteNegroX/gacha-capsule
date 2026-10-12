@@ -3,6 +3,11 @@ export const ROBINHOOD_CHAIN_HEX = '0x1237'
 export const ROBINHOOD_USDG = '0x5fc5360d0400a0fd4f2af552add042d716f1d168'
 export const ROBINHOOD_RPC = 'https://rpc.mainnet.chain.robinhood.com'
 export const ROBINHOOD_EXPLORER = 'https://robinhoodchain.blockscout.com'
+export const HYPERLIQUID_CHAIN_ID = 999
+export const HYPERLIQUID_CHAIN_HEX = '0x3e7'
+export const HYPERLIQUID_USDC = '0xb88339CB7199b77E23DB6E890353E22632Ba630f'
+export const HYPERLIQUID_RPC = 'https://rpc.hyperliquid.xyz/evm'
+export const HYPERLIQUID_EXPLORER = 'https://hyperevmscan.io'
 
 const USDG_DECIMALS = 6
 
@@ -58,6 +63,29 @@ export async function ensureRobinhood(provider: EthereumProvider): Promise<strin
       }],
     })
   }
+  return connectedAccount(provider)
+}
+
+export async function ensureHyperliquid(provider: EthereumProvider): Promise<string> {
+  try {
+    await provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: HYPERLIQUID_CHAIN_HEX }] })
+  } catch (err) {
+    if (walletErrorCode(err) !== 4902) throw err
+    await provider.request({
+      method: 'wallet_addEthereumChain',
+      params: [{
+        chainId: HYPERLIQUID_CHAIN_HEX,
+        chainName: 'HyperEVM',
+        nativeCurrency: { name: 'HYPE', symbol: 'HYPE', decimals: 18 },
+        rpcUrls: [HYPERLIQUID_RPC],
+        blockExplorerUrls: [HYPERLIQUID_EXPLORER],
+      }],
+    })
+  }
+  return connectedAccount(provider)
+}
+
+async function connectedAccount(provider: EthereumProvider): Promise<string> {
   const accounts = await provider.request({ method: 'eth_requestAccounts' })
   const from = Array.isArray(accounts) ? accounts[0] : ''
   if (typeof from !== 'string' || !/^0x[a-fA-F0-9]{40}$/.test(from)) {

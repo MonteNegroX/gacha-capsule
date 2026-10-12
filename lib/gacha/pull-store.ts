@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { Prisma } from '@prisma/client'
 import { WIN_UNFUNDED_MS, type CapsuleOrder, type Choice, type ChoiceSource, type DrawResult, type OrderStatus } from '@/lib/capsule/order'
 import { prisma } from '@/lib/prisma'
 import { doubleOffered } from '@/lib/gacha/pack-access'
@@ -618,11 +619,23 @@ export async function listPledgedDeals(): Promise<ListedDeal[]> {
 }
 
 export async function mintAlreadyOpened(mint: string): Promise<boolean> {
+  const opened = await mintsAlreadyOpened([mint])
+  return opened.has(mint)
+}
+
+export async function mintsAlreadyOpened(mints: string[]): Promise<Set<string>> {
+  const unique = [...new Set(mints.filter((mint) => mint.length > 0))]
+  if (unique.length === 0) return new Set()
   await ensurePullStore()
-  const rows = await prisma.$queryRaw<unknown[]>`
-    SELECT id FROM pull_order WHERE nft_address = ${mint} LIMIT 1
+  const rows = await prisma.$queryRaw<Array<{ nft_address: string | null }>>`
+    SELECT nft_address FROM pull_order
+    WHERE nft_address IN (${Prisma.join(unique)})
   `
-  return rows.length > 0
+  const found = new Set<string>()
+  for (const row of rows) {
+    if (row.nft_address) found.add(row.nft_address)
+  }
+  return found
 }
 
 export type { Choice, ChoiceSource, DrawResult }

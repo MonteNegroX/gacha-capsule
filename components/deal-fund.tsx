@@ -236,7 +236,7 @@ export function DealFund({
   const repays = borrower === 'owner' ? 'the owner' : 'the vault'
 
   return (
-    <article className="rounded-3xl border border-white/10 bg-[#14171e] p-5 sm:p-6">
+    <article className="rounded-[22px] border border-white/10 bg-[#14171e] p-5 sm:p-6">
       <div className="grid items-start gap-5 sm:grid-cols-[8rem_minmax(0,1fr)]">
         {imageUrl && <img src={imageUrl} alt="" width={320} height={440} className="mx-auto max-h-40 w-full object-contain" />}
         <div className="flex flex-col gap-3">
@@ -251,31 +251,31 @@ export function DealFund({
           </p>
           <p className="break-all font-mono text-[11px] text-[#717886]">NFT {nftAddress}</p>
           {deal?.status === 1 && (
-            <button type="button" disabled={busy} onClick={() => void fund()} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]">
-              {busy ? 'Confirm in wallet' : wallet ? `Fund ${formatUnits(principal)} USDG` : 'Connect wallet'}
+            <button type="button" disabled={busy} onClick={() => void fund()} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
+              {busy ? 'Confirm in Wallet' : wallet ? `Fund ${formatUnits(principal)} USDG` : 'Connect Wallet'}
             </button>
           )}
           {deal?.status === 2 && !expired && isOwner && deal.held > BigInt(0) && (
-            <button type="button" disabled={busy} onClick={() => void withdraw()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3]">
-              {busy ? 'Confirm in wallet' : `Withdraw ${formatUnits(deal.held)} USDG`}
+            <button type="button" disabled={busy} onClick={() => void withdraw()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
+              {busy ? 'Confirm in Wallet' : `Withdraw ${formatUnits(deal.held)} USDG`}
             </button>
           )}
           {deal?.status === 2 && !expired && isOwner && (
-            <button type="button" disabled={busy} onClick={() => void repay()} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]">
-              {busy ? 'Confirm in wallet' : `Repay ${due == null ? '' : formatUnits(due)} USDG`}
+            <button type="button" disabled={busy} onClick={() => void repay()} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
+              {busy ? 'Confirm in Wallet' : `Repay ${due == null ? '' : formatUnits(due)} USDG`}
             </button>
           )}
           {deal?.status === 2 && !expired && !isOwner && (
             <p className="text-sm leading-relaxed text-[#b1b7c3]">{borrower === 'owner' ? 'The owner repays this from their wallet before the term ends.' : 'The vault repays this from its own wallet before the term ends.'}</p>
           )}
           {deal?.status === 2 && expired && (
-            <button type="button" disabled={busy} onClick={() => void markDefault()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3]">
-              Mark default
+            <button type="button" disabled={busy} onClick={() => void markDefault()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
+              Mark Default
             </button>
           )}
           {deal?.status === 4 && isOwner && deal.held > BigInt(0) && (
-            <button type="button" disabled={busy} onClick={() => void withdraw()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3]">
-              {busy ? 'Confirm in wallet' : `Withdraw ${formatUnits(deal.held)} USDG`}
+            <button type="button" disabled={busy} onClick={() => void withdraw()} className="h-12 rounded-xl border border-white/15 text-sm font-bold uppercase tracking-wide text-white disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
+              {busy ? 'Confirm in Wallet' : `Withdraw ${formatUnits(deal.held)} USDG`}
             </button>
           )}
           {deal?.status === 4 && (!wallet || isFunder) && (
@@ -284,6 +284,7 @@ export function DealFund({
                 Solana address for the card
                 <input
                   id={`solana-${orderId}`}
+                  name="solana-address"
                   value={address}
                   onChange={(event) => setAddress(event.target.value)}
                   autoComplete="off"
@@ -291,13 +292,13 @@ export function DealFund({
                   className="mt-1.5 h-12 w-full rounded-xl border border-white/10 bg-black/30 px-3 text-sm text-white"
                 />
               </label>
-              <button type="submit" disabled={busy} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]">
-                {wallet ? 'Save Solana address' : 'Connect wallet'}
+              <button type="submit" disabled={busy} className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
+                {wallet ? 'Save Solana Address' : 'Connect Wallet'}
               </button>
             </form>
           )}
           {note && <p className="break-all text-xs text-[#b1b7c3]">{note}</p>}
-          {error && <p className="text-sm text-[#fc401f]">{error}</p>}
+          {error && <p role="alert" className="text-sm text-[#fc401f]">{error}</p>}
         </div>
       </div>
     </article>

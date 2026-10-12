@@ -6,10 +6,18 @@ export const ROBINHOOD = {
   confirmations: Number(process.env.GACHA_PAYMENT_CONFIRMATIONS ?? 1),
 }
 
+const CIRCLE_USDC = '0xb88339cb7199b77e23db6e890353e22632ba630f'
+
+function hyperUsdc(): string {
+  const set = process.env.HYPERLIQUID_USDC_ADDRESS?.trim().toLowerCase() ?? ''
+  if (/^0x[a-f0-9]{40}$/.test(set) && !/^0x0{40}$/.test(set)) return set
+  return CIRCLE_USDC
+}
+
 export const HYPERLIQUID = {
   chainId: 999,
   rpcUrl: process.env.HYPERLIQUID_RPC_URL?.trim() || 'https://rpc.hyperliquid.xyz/evm',
-  usdc: (process.env.HYPERLIQUID_USDC_ADDRESS?.trim() || '').toLowerCase(),
+  usdc: hyperUsdc(),
   decimals: 6,
   confirmations: Number(process.env.GACHA_PAYMENT_CONFIRMATIONS ?? 1),
 }
@@ -66,6 +74,7 @@ export function readUsdgTransfer(
   token: string,
   treasury: string,
   minRaw: bigint,
+  tokenName = 'USDG',
 ): PaymentCheck {
   if (!receipt) return { ok: false, terminal: false, error: 'Transaction receipt not found yet' }
   if (receipt.status !== '0x1') return { ok: false, terminal: true, error: 'Transaction failed' }
@@ -78,7 +87,7 @@ export function readUsdgTransfer(
       row.topics[2]?.toLowerCase() === treasuryTopic
     )
   })
-  if (!log) return { ok: false, terminal: true, error: 'No USDG transfer to the treasury in this transaction' }
+  if (!log) return { ok: false, terminal: true, error: `No ${tokenName} transfer to the treasury in this transaction` }
 
   const raw = BigInt(log.data === '0x' || log.data === '0x0' ? '0' : log.data)
   const from = '0x' + (log.topics[1] ?? '').slice(-40).toLowerCase()
@@ -86,7 +95,7 @@ export function readUsdgTransfer(
     return {
       ok: false,
       terminal: true,
-      error: 'USDG amount is below the pack price',
+      error: `${tokenName} amount is below the pack price`,
       from,
       amountRaw: raw.toString(),
       amountUsd: fromTokenUnits(raw, ROBINHOOD.decimals),
@@ -147,12 +156,8 @@ export async function verifyHyperliquidPayment(txHash: string, priceUsd: number)
   if (!/^0x[a-fA-F0-9]{64}$/.test(txHash)) {
     return { ok: false, terminal: false, error: 'Transaction hash is not a 32-byte hex value' }
   }
-  if (!HYPERLIQUID.usdc) {
-    return { ok: false, terminal: false, error: 'HYPERLIQUID_USDC_ADDRESS is not configured' }
-  }
-
   const receipt = await rpc<TxReceipt | null>(HYPERLIQUID.rpcUrl, 'eth_getTransactionReceipt', [txHash])
-  const check = readUsdgTransfer(receipt, HYPERLIQUID.usdc, treasury, toTokenUnits(priceUsd, HYPERLIQUID.decimals))
+  const check = readUsdgTransfer(receipt, HYPERLIQUID.usdc, treasury, toTokenUnits(priceUsd, HYPERLIQUID.decimals), 'USDC')
   if (!check.ok || !receipt?.blockNumber) return check
 
   const latest = await rpc<string>(HYPERLIQUID.rpcUrl, 'eth_blockNumber', [])

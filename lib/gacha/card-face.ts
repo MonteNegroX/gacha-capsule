@@ -69,11 +69,11 @@ export function faceFromMarketplace(body: unknown, mint: string): FacePatch {
     year: yearValue(card.year),
     grade: formatGrade(card.gradingCompany, card.gradeNum),
     backUrl:
-      imageUrl(images?.backM) ??
-      imageUrl(images?.backL) ??
-      imageUrl(images?.back) ??
-      imageUrl(images?.backS) ??
-      imageUrl(card.backImage),
+      allowedCardImage(images?.backM) ??
+      allowedCardImage(images?.backL) ??
+      allowedCardImage(images?.back) ??
+      allowedCardImage(images?.backS) ??
+      allowedCardImage(card.backImage),
   }
 }
 
@@ -121,7 +121,7 @@ function yearValue(value: unknown): string | null {
   return /^(19|20)\d{2}$/.test(text) ? text : null
 }
 
-function imageUrl(value: unknown): string | null {
+export function allowedCardImage(value: unknown): string | null {
   if (typeof value !== 'string' || !value.startsWith('https://')) return null
   try {
     const url = new URL(value)

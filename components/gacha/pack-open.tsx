@@ -7,13 +7,17 @@ import type { PublicPull } from '@/lib/gacha/pull-store'
 import { PackReveal, type RevealPull } from '@/components/gacha/pack-reveal'
 import styles from '@/components/gacha/pack-open.module.css'
 import {
+  HYPERLIQUID_USDC,
   ROBINHOOD_EXPLORER,
   ROBINHOOD_USDG,
   encodeUsdgTransfer,
+  ensureHyperliquid,
   ensureRobinhood,
   sendRobinhoodCall,
   usdgAmount,
 } from '@/lib/gacha/robinhood-transfer'
+
+type PayNetwork = 'robinhood' | 'hyperliquid'
 
 const WAITING = new Set([
   'PAYMENT_CONFIRMED',
@@ -52,6 +56,7 @@ export function PackOpen({
   const [order, setOrder] = useState<PublicPull | null>(null)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState('')
+  const [network, setNetwork] = useState<PayNetwork>('robinhood')
   const [opening, setOpening] = useState(false)
   const [coin, setCoin] = useState<'idle' | 'spin' | 'win' | 'loss'>('idle')
   const [coinHold, setCoinHold] = useState(false)
@@ -119,9 +124,11 @@ export function PackOpen({
     setBusy(true)
     setError('')
     try {
+      const hyper = network === 'hyperliquid'
       const provider = await wallet.getEthereumProvider()
-      const from = await ensureRobinhood(provider)
-      const hash = await sendRobinhoodCall(provider, from, ROBINHOOD_USDG, encodeUsdgTransfer(treasury, usdgAmount(price)))
+      const from = hyper ? await ensureHyperliquid(provider) : await ensureRobinhood(provider)
+      const token = hyper ? HYPERLIQUID_USDC : ROBINHOOD_USDG
+      const hash = await sendRobinhoodCall(provider, from, token, encodeUsdgTransfer(treasury, usdgAmount(price)))
       window.sessionStorage.setItem(storageKey, hash)
       setOpening(true)
       let saved: PublicPull | null = null
@@ -129,7 +136,7 @@ export function PackOpen({
         const res = await fetch('/api/open/pay', {
           method: 'POST',
           headers: { 'content-type': 'application/json' },
-          body: JSON.stringify({ packType: code, txHash: hash }),
+          body: JSON.stringify({ packType: code, txHash: hash, network }),
         })
         const body = (await res.json()) as { order?: PublicPull; error?: string; pending?: boolean }
         if (body.order) {
@@ -194,7 +201,7 @@ export function PackOpen({
       <div className={styles.stage} aria-live="polite">
         <p className="text-center text-sm text-[#b1b7c3]">{order ? statusCopy(order) : 'Confirming the payment.'}</p>
         <div className={styles.slab} />
-        {error && <p className="text-sm text-[#fc401f]">{error}</p>}
+        {error && <p role="alert" className="text-sm text-[#fc401f]">{error}</p>}
       </div>
     )
   }
@@ -226,28 +233,85 @@ export function PackOpen({
             )}
           </>
         ) : null} />
-        {error && <p className="text-sm text-[#fc401f]">{error}</p>}
+        {error && <p role="alert" className="text-sm text-[#fc401f]">{error}</p>}
       </div>
     )
   }
 
+  const hyper = network === 'hyperliquid'
+  const tokenName = hyper ? 'USDC' : 'USDG'
+  const payHelp = hyper
+    ? `Pay ${price} USDC on Hyperliquid. Keep a little HYPE for gas. Buyback is still paid in USDG on Robinhood. The pack opens in the vault, then you choose buyback. Double appears only if the card is Common.`
+    : `Pay ${price} USDG on Robinhood. The pack opens in the vault, then you choose buyback. Double appears only if the card is Common.`
+
   return (
     <form onSubmit={pay} className="flex flex-col gap-3">
-      <p className="text-sm leading-relaxed text-[#b1b7c3]">
-        {order ? statusCopy(order) : `Pay ${price} USDG on Robinhood. The pack opens in the vault, then you choose buyback. Double appears only if the card is Common.`}
+      <p id="pack-pay-help" className="text-base leading-relaxed text-[#b1b7c3]">
+        {order ? statusCopy(order) : payHelp}
       </p>
+      {!order && (
+        <fieldset className="m-0 flex flex-col gap-2 border-0 p-0" disabled={busy}>
+          <legend className="mb-1 text-xs font-semibold uppercase tracking-[0.16em] text-[#717886]">Pay With</legend>
+          <div className="grid grid-cols-2 gap-2">
+            <PayNetworkOption
+              value="robinhood"
+              label="Robinhood"
+              checked={network === 'robinhood'}
+              onSelect={setNetwork}
+            />
+            <PayNetworkOption
+              value="hyperliquid"
+              label="Hyperliquid"
+              checked={network === 'hyperliquid'}
+              onSelect={setNetwork}
+            />
+          </div>
+        </fieldset>
+      )}
       {!order && reason && <p className="text-sm text-[#ffd12f]">{reason}</p>}
-      {error && <p className="text-sm text-[#fc401f]">{error}</p>}
+      {error && <p role="alert" className="text-sm text-[#fc401f]">{error}</p>}
       {!order && (
         <button
           type="submit"
           disabled={!openReady || busy || !treasury}
-          className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]"
+          aria-describedby="pack-pay-help"
+          className="h-12 rounded-xl bg-[#3c8aff] text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]"
         >
-          {busy ? 'Confirm in wallet' : wallet ? `Open for ${price} USDG` : 'Connect wallet'}
+          {busy ? 'Confirm in Wallet' : wallet ? `Open for ${price} ${tokenName}` : 'Connect Wallet'}
         </button>
       )}
     </form>
+  )
+}
+
+function PayNetworkOption({
+  value,
+  label,
+  checked,
+  onSelect,
+}: {
+  value: PayNetwork
+  label: string
+  checked: boolean
+  onSelect: (value: PayNetwork) => void
+}) {
+  const id = `pack-pay-${value}`
+  return (
+    <label
+      htmlFor={id}
+      className="flex h-12 cursor-pointer items-center gap-3 rounded-xl border border-white/15 px-3 text-base text-white has-[:checked]:border-[#3c8aff] has-[:focus-visible]:outline has-[:focus-visible]:outline-2 has-[:focus-visible]:outline-offset-2 has-[:focus-visible]:outline-[#3c8aff]"
+    >
+      <input
+        id={id}
+        type="radio"
+        name="network"
+        value={value}
+        checked={checked}
+        onChange={() => onSelect(value)}
+        className="size-4 accent-[#3c8aff]"
+      />
+      {label}
+    </label>
   )
 }
 
@@ -299,11 +363,11 @@ function ChoiceBlock({
         {deadline ? ` Choose before ${new Date(deadline).toLocaleString()}.` : ''}
       </p>
       <div className="flex flex-wrap gap-2">
-        <button type="button" disabled={disabled || busy} onClick={() => onChoose('BUYBACK')} className="h-12 rounded-xl bg-[#3c8aff] px-4 text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3]">
+        <button type="button" disabled={disabled || busy} onClick={() => onChoose('BUYBACK')} className="h-12 rounded-xl bg-[#3c8aff] px-4 text-sm font-bold uppercase tracking-wide text-white disabled:bg-white/10 disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
           Buyback
         </button>
         {doubleOffered && (
-          <button type="button" disabled={disabled || busy} onClick={() => onChoose('DOUBLE')} className="h-12 rounded-xl border border-[#ffd12f] px-4 text-sm font-bold uppercase tracking-wide text-[#ffd12f] disabled:border-white/10 disabled:text-[#b1b7c3]">
+          <button type="button" disabled={disabled || busy} onClick={() => onChoose('DOUBLE')} className="h-12 rounded-xl border border-[#ffd12f] px-4 text-sm font-bold uppercase tracking-wide text-[#ffd12f] disabled:border-white/10 disabled:text-[#b1b7c3] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#3c8aff]">
             Double
           </button>
         )}

@@ -16,3 +16,5 @@ data/
 .DS_Store
 .aider*
 .env
+scratch/
+opener/
