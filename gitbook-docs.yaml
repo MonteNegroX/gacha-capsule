@@ -1,70 +1,21 @@
+# Site map for Git Sync. GitBook reads this from the repository root
+# unless a Project directory is set. The space content lives in ./documentation.
+# Draft only: do not publish until the pages are reviewed.
 $schema: https://api.gitbook.com/gitbook-docs.yaml
 site:
-  title: Capsule Docs
+  title: Capsule
   structure:
     - type: section
-      key: section-1
-      title: Home
-      path: home
-      icon: house
-      default: true
+      key: capsule-docs
+      title: Capsule
+      path: docs
       children:
         - type: space
-          key: space-1
-          title: Home
-          path: home
+          key: capsule
+          title: Product
+          path: product
           default: true
-          content:
-            directory: ./home
-    - type: section
-      key: section-2
-      title: Documentation
-      path: documentation
-      icon: book-blank
-      children:
-        - type: space
-          key: space-2
-          title: Documentation
-          path: documentation
-          default: true
+          description: Open a graded pack, then buy the card back or fund it.
           content:
             directory: ./documentation
-    - type: section
-      key: section-3
-      title: API Reference
-      path: api-reference
-      icon: terminal
-      children:
-        - type: space
-          key: space-3
-          title: API Reference
-          path: api-reference
-          default: true
-          content:
-            directory: ./api-reference
-    - type: section
-      key: section-4
-      title: Changelog
-      path: changelog
-      icon: clock-rotate-left
-      children:
-        - type: space
-          key: space-4
-          title: Changelog
-          path: changelog
-          default: true
-          content:
-            directory: ./changelog
-    - type: section
-      key: section-5
-      title: Help Center
-      path: help-center
-      icon: life-ring
-      children:
-        - type: space
-          key: space-5
-          title: Help Center
-          path: help-center
-          default: true
-          content:
-            directory: ./help-center
+            language: en
