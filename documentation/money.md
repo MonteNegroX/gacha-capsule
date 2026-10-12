@@ -1,10 +1,12 @@
 # Money
 
-Two different flows move USDG. They are not the same number.
+A pack payment and a loan are different flows. A pack can be paid in USDG or in Hyperliquid USDC. A loan, a buyback, and a refund move USDG.
 
 ## Pack open
 
-You pay 25 USDG. If you take Buyback, you receive the quote locked at open. If you win Double, you receive 2× that quote. If you lose Double, you receive nothing.
+The $25 pack is 25 USDG on Robinhood or 25 USDC on Hyperliquid. The Garage Pack is 20 USDG or 20 USDC.
+
+If you take Buyback, you receive the quote locked at open, in USDG on Robinhood. If you win Double on the $25 pack, you receive 2× that quote, in the same USDG. If you lose Double, you receive nothing. The Garage Pack has no Double.
 
 The pack price is not a protocol fee. The buyback is a payment to you, not a yield.
 

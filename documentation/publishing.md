@@ -1,6 +1,8 @@
 # Publishing this space
 
-This folder is a GitBook space. It is not connected to a GitBook site yet, and nothing here has been published.
+This folder is the GitBook space. Saving these files in the repository does not publish them. Publish only after a change request is accepted.
+
+`home/`, `api-reference/`, `changelog/`, and `help-center/` are leftover GitBook starter files. They are not this space. Git Sync uses `documentation/` through `gitbook-docs.yaml` at the repository root.
 
 ## Layout
 

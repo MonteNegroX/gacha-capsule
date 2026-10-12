@@ -2,6 +2,8 @@
 
 A listed card is a 7-day loan on CapsuleLend. The collateral is the graded card in the Capsule vault. The token is USDG.
 
+A loan comes from a won Double on the $25 pack, or from a card you list yourself. The Garage Pack does not create a listing.
+
 ## Fund a listing
 
 A funder deposits exactly the principal. That deposit is not a fee.

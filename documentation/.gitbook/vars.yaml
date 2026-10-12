@@ -12,3 +12,11 @@ term_days: "7"
 funder_fee: "3%"
 protocol_fee: "1%"
 double_win_below: "49"
+robinhood_explorer: https://robinhoodchain.blockscout.com
+hyper_chain_name: Hyperliquid
+hyper_chain_id: "999"
+hyper_rpc: https://rpc.hyperliquid.xyz/evm
+hyper_explorer: https://hyperevmscan.io
+hyper_usdc: "0xb88339CB7199b77E23DB6E890353E22632Ba630f"
+garage_code: garage_20
+garage_price: "20"

@@ -9,13 +9,14 @@ site:
       key: capsule-docs
       title: Capsule
       path: docs
+      default: true
+      description: Open the $25 pack or the Garage Pack. Buy the card back, or Double a Common on the $25 pack.
       children:
         - type: space
           key: capsule
           title: Product
           path: product
           default: true
-          description: Open a graded pack, then buy the card back or fund it.
           content:
             directory: ./documentation
             language: en
