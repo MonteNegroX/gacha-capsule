@@ -1,27 +1,16 @@
-# Table of contents
+# Summary
 
-* [Welcome](README.md)
+## Product
 
-## Getting Started
+* [Capsule](README.md)
+* [Open a pack](open-a-pack.md)
+* [The reveal](the-reveal.md)
+* [Buyback and Double](buyback-and-double.md)
+* [Lend](lend.md)
+* [Money](money.md)
+* [Contracts](contracts.md)
 
-* [Getting started](getting-started/getting-started.md)
-* [Quickstart](getting-started/quickstart.md)
-* [Your first project](getting-started/your-first-project.md)
+## Draft
 
-## Core concepts
-
-* [Core concepts](core-concepts/core-concepts.md)
-* [Workspaces and projects](core-concepts/workspaces-and-projects.md)
-* [Permissions](core-concepts/permissions.md)
-
-## Guides
-
-* [Guides](guides/guides.md)
-* [Custom domains](guides/custom-domains.md)
-* [Automations](guides/automations.md)
-
-## Reference
-
-* [Reference](reference/reference.md)
-* [Configuration](reference/configuration.md)
-* [Glossary](reference/glossary.md)
+* [What is not live](not-live.md)
+* [Publishing this space](publishing.md)

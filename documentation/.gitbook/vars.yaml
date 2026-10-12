@@ -1,0 +1,14 @@
+site_url: https://www.capsulepull.xyz
+preview_url: https://www.capsulepull.xyz/?preview=reveal
+pack_code: pokemon_25
+pack_price_usdg: "25"
+chain_name: Robinhood Chain
+chain_id: "4663"
+usdg: "0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168"
+lend: "0xa7F89DE1FE71Aa4D37A9179231787b2aC1a4DcFc"
+treasury: "0xd89D795dD6D8eB591A0BB0Cb5105a5EaD1d00E99"
+vault: "41NaNu6LNhDStmzEqGZHvHsawjtaBTVbR9GZdnQJ3193"
+term_days: "7"
+funder_fee: "3%"
+protocol_fee: "1%"
+double_win_below: "49"
