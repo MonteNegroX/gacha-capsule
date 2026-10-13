@@ -1,5 +1,6 @@
 import { existsSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
+import { HELD_JOLTEON } from './held-card'
 import committed from './vault-card.json'
 
 export type VaultListing = {
@@ -69,12 +70,17 @@ function readListing(raw: ListingFile): VaultListing | null {
 
 export function loadVaultListing(): VaultListing | null {
   const path = join(process.cwd(), 'data', 'lend-listing.json')
-  if (existsSync(path)) {
-    try {
-      return readListing(JSON.parse(readFileSync(path, 'utf8')) as ListingFile)
-    } catch {
-      return null
-    }
+  const listing = existsSync(path)
+    ? readFileListing(path)
+    : readListing(committed)
+  if (!listing || listing.nftAddress === HELD_JOLTEON) return null
+  return listing
+}
+
+function readFileListing(path: string): VaultListing | null {
+  try {
+    return readListing(JSON.parse(readFileSync(path, 'utf8')) as ListingFile)
+  } catch {
+    return null
   }
-  return readListing(committed)
 }
