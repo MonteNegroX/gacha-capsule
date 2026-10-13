@@ -18,3 +18,11 @@ data/
 .env
 scratch/
 opener/
+
+# Local drafts. documentation/ stays tracked.
+CONTINUE.md
+IMPLEMENTATION_PLAN.md
+contracts/robinhood-lend-7m.json
+docs/
+gacha-backend/
+lib/gacha/payout.ts
